@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{TitanTheme{TitanApp()}}}
@@ -19,13 +20,16 @@ class MainActivity:ComponentActivity(){
 private enum class Screen{WELCOME,PROFILE,WORK,TRAINING,MAINTENANCE,STRATEGY,TODAY,ADD}
 
 @Composable fun TitanApp(){
- var screen by remember{mutableStateOf(Screen.WELCOME)}
- var sex by remember{mutableStateOf(Sex.MALE)}
- var age by remember{mutableStateOf("39")};var height by remember{mutableStateOf("170")};var weight by remember{mutableStateOf("93")}
+ val context=LocalContext.current
+ val store=remember{TitanStore(context)}
+ val saved=remember{store.load()}
+ var screen by remember{mutableStateOf(if(saved!=null)Screen.TODAY else Screen.WELCOME)}
+ var sex by remember{mutableStateOf(saved?.sex?:Sex.MALE)}
+ var age by remember{mutableStateOf((saved?.age?:39).toString())};var height by remember{mutableStateOf((saved?.heightCm?:170.0).toInt().toString())};var weight by remember{mutableStateOf((saved?.weightKg?:93.0).toInt().toString())}
  var standing by remember{mutableStateOf("7")};var moving by remember{mutableStateOf("5")};var load by remember{mutableStateOf("2")}
  var sessions by remember{mutableStateOf("4")};var minutes by remember{mutableStateOf("75")}
- var estimate by remember{mutableStateOf<EnergyEstimate?>(null)};var strategy by remember{mutableStateOf(Strategy.MODERATE)}
- var meals by remember{mutableStateOf(emptyList<MealSlot>())}
+ var estimate by remember{mutableStateOf<EnergyEstimate?>(saved?.let{EnergyEstimate(0,0,0,0,it.maintenance)})};var strategy by remember{mutableStateOf(saved?.strategy?:Strategy.MODERATE)}
+ var meals by remember{mutableStateOf(saved?.let{TitanEngine.distribute(TitanEngine.plans(it.maintenance).first{p->p.strategy==it.strategy}.target,listOf("Desayuno","Comida","Merienda","Cena"))}?:emptyList())}
  fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;return TitanEngine.plans(m).first{it.strategy==strategy}}
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
   when(screen){
@@ -38,7 +42,10 @@ private enum class Screen{WELCOME,PROFILE,WORK,TRAINING,MAINTENANCE,STRATEGY,TOD
     estimate=TitanEngine.estimateEnergy(UserProfile(sex,age.toIntOrNull()?:30,height.toDoubleOrNull()?:170.0,w,1.2,qe.workDailyKcal,qe.trainingDailyKcal));screen=Screen.MAINTENANCE
    }
    Screen.MAINTENANCE->Maintenance(estimate!!){screen=Screen.STRATEGY}
-   Screen.STRATEGY->Strategies(estimate!!.maintenance,strategy,{strategy=it}){meals=TitanEngine.distribute(currentPlan().target,listOf("Desayuno","Comida","Merienda","Cena"));screen=Screen.TODAY}
+   Screen.STRATEGY->Strategies(estimate!!.maintenance,strategy,{strategy=it}){
+    val profile=UserProfile(sex,age.toIntOrNull()?:30,height.toDoubleOrNull()?:170.0,weight.toDoubleOrNull()?:70.0)
+    store.save(profile,estimate!!.maintenance,strategy)
+    meals=TitanEngine.distribute(currentPlan().target,listOf("Desayuno","Comida","Merienda","Cena"));screen=Screen.TODAY}
    Screen.TODAY->{val p=currentPlan();Today(p,TitanEngine.balance(p,meals.sumOf{it.consumedKcal}),meals,{screen=Screen.ADD},{id->meals=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute)})}
    Screen.ADD->AddMeal({n,k->val i=meals.indexOfFirst{it.status==MealStatus.PENDING};if(i>=0)meals=meals.mapIndexed{x,m->if(x==i)m.copy(name=n,consumedKcal=k,status=MealStatus.CONFIRMED)else m}.let(TitanEngine::redistribute);screen=Screen.TODAY}){screen=Screen.TODAY}
   }
