@@ -46,7 +46,8 @@ data class DailyBalance(
     val excessOverTolerance: Int
 )
 
-data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class WeeklyFeedback(val hunger:Int,val energy:Int,val recovery:Int,val performance:Int,val stress:Int,val satisfaction:Int)
+data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class BodyTrend(val entries:Int,val weightChangeKg:Double,val waistChangeCm:Double?,val weeklyWeightRateKg:Double,val message:String)
+data class WeeklyFeedback(val hunger:Int,val energy:Int,val recovery:Int,val performance:Int,val stress:Int,val satisfaction:Int)
 data class WeeklyReview(val days:Int,val averageKcal:Int,val targetAverage:Int,val adherencePercent:Int,val excessOverTolerance:Int,val completedMeals:Int,val skippedMeals:Int,val feedback:WeeklyFeedback)
 data class WeeklyAdjustment(val currentTarget:Int,val nextTarget:Int,val delta:Int,val reason:String)
 
@@ -127,6 +128,17 @@ object TitanEngine {
     fun closeDay(plan:CaloriePlan,meals:List<MealSlot>):DayCloseResult {
         val b=balance(plan,meals.sumOf{it.consumedKcal})
         return DayCloseResult(b.consumed,b.target,b.toleranceCeiling,b.excessOverTolerance,meals.count{it.status==MealStatus.CONFIRMED},meals.count{it.status==MealStatus.SKIPPED})
+    }
+
+    fun bodyTrend(entries:List<BodyEntry>):BodyTrend{
+        if(entries.size<2)return BodyTrend(entries.size,0.0,null,0.0,"Necesitamos al menos dos registros para mostrar una tendencia.")
+        val first=entries.first();val last=entries.last()
+        val days=runCatching{java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(first.date),java.time.LocalDate.parse(last.date)).toInt()}.getOrDefault(0).coerceAtLeast(1)
+        val change=last.weightKg-first.weightKg
+        val rate=change*7.0/days
+        val waist=if(first.waistCm!=null&&last.waistCm!=null)last.waistCm-first.waistCm else null
+        val msg=when{days<7->"Tendencia inicial: aún necesitamos más días.";kotlin.math.abs(rate)<0.1->"Peso bastante estable en el periodo registrado.";rate<0->"Tendencia de peso descendente.";else->"Tendencia de peso ascendente."}
+        return BodyTrend(entries.size,change,waist,rate,msg)
     }
 
     fun weeklyReview(days:List<DayRecord>,feedback:WeeklyFeedback):WeeklyReview{
