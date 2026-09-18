@@ -4,6 +4,7 @@ import android.content.Context
 import java.time.LocalDate
 
 data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy)
+data class SessionDay(val date:String,val meals:List<MealSlot>,val createdNew:Boolean)
 data class BodyEntry(val date:String,val weightKg:Double,val waistCm:Double?)\ndata class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)\ndata class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
 
 class TitanStore(context:Context){
@@ -16,6 +17,20 @@ class TitanStore(context:Context){
   val r=TitanEngine.closeDay(plan,meals)
   p.edit().putString(dayKey(date)+"_meals",encoded).putInt(dayKey(date)+"_target",plan.target).putInt(dayKey(date)+"_tolerance",plan.toleranceCeiling).putInt(dayKey(date)+"_consumed",r.consumed).putInt(dayKey(date)+"_excess",r.excessToRecalibrate).putInt(dayKey(date)+"_confirmed",r.completedMeals).putInt(dayKey(date)+"_skipped",r.skippedMeals).putBoolean(dayKey(date)+"_closed",closed).apply()
  }
+ fun ensureToday(plan:CaloriePlan,date:LocalDate=LocalDate.now()):SessionDay{
+  val key="active_date";val previous=p.getString(key,null);val today=date.toString()
+  if(previous!=today){
+   val fresh=TitanEngine.distribute(plan.target,listOf("Desayuno","Comida","Merienda","Cena"))
+   p.edit().putString(key,today).apply();saveDay(fresh,plan,today,false)
+   return SessionDay(today,fresh,true)
+  }
+  val loaded=loadMeals(today)
+  if(loaded!=null)return SessionDay(today,loaded,false)
+  val fresh=TitanEngine.distribute(plan.target,listOf("Desayuno","Comida","Merienda","Cena"));saveDay(fresh,plan,today,false)
+  return SessionDay(today,fresh,true)
+ }
+ fun remainingDaysInWeek(date:LocalDate=LocalDate.now())=(7-date.dayOfWeek.value).coerceAtLeast(0)
+ fun previousWeekHistory(today:LocalDate=LocalDate.now()):List<DayRecord>=weekHistory(today.minusWeeks(1))
  fun loadMeals(date:String=LocalDate.now().toString()):List<MealSlot>?{
   val raw=p.getString(dayKey(date)+"_meals",null)?:return null
   return raw.split("~").mapNotNull{x->val a=x.split("|");if(a.size<5)null else runCatching{MealSlot(a[0],a[1],a[2].toInt(),a[3].toInt(),MealStatus.valueOf(a[4]),a.getOrNull(5)?.toIntOrNull()?:0,a.getOrNull(6)?.toIntOrNull()?:0,a.getOrNull(7)?.toIntOrNull()?:0)}.getOrNull()}
