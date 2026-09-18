@@ -53,7 +53,13 @@ class TitanStore(context:Context){
   val monday=today.minusDays((today.dayOfWeek.value-1).toLong())
   return (0L..6L).mapNotNull{n->val d=monday.plusDays(n).toString();val k=dayKey(d);if(!p.contains(k+"_target"))null else DayRecord(d,p.getInt(k+"_target",0),p.getInt(k+"_tolerance",0),p.getInt(k+"_consumed",0),p.getInt(k+"_excess",0),p.getInt(k+"_confirmed",0),p.getInt(k+"_skipped",0),p.getBoolean(k+"_closed",false))}
  }
- fun activeTarget(defaultTarget:Int)=p.getInt("active_target",defaultTarget)
+ fun activeTarget(defaultTarget:Int):Int{
+  val saved=p.getInt("active_target",defaultTarget)
+  if(saved>0)return saved
+  // Legacy beta builds could persist 0 here. Never let invalid target reach the engine.
+  p.edit().remove("active_target").apply()
+  return defaultTarget.coerceAtLeast(1)
+ }
  fun applyWeeklyAdjustment(adjustment:WeeklyAdjustment,date:String=LocalDate.now().toString()){
   if(adjustment.nextTarget<=0)return
   val history=p.getString("target_history","").orEmpty()
