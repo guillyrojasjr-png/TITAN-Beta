@@ -82,7 +82,15 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
     val id=selectedMealId;val d=safeDish;val updated=meals.map{if(it.id==id)it.copy(name=d.name,consumedKcal=d.kcal,status=MealStatus.CONFIRMED,proteinG=d.proteinG,carbsG=d.carbsG,fatG=d.fatG)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan());screen=Screen.MEALS
    },{screen=Screen.MEALS})}?:run{screen=Screen.MEALS}
    Screen.ALTERNATIVES->{val meal=meals.firstOrNull{it.id==selectedMealId};val dish=proposedDish;if(meal!=null&&dish!=null)Alternatives(meal.plannedKcal,dish,{d->proposedDish=d;screen=Screen.DISH},{screen=Screen.DISH}) else screen=Screen.MEALS}
-   Screen.INGREDIENT->IngredientEditor(proposedDish!!,selectedIngredient,{g->proposedDish=MealEngine.resizeIngredient(proposedDish!!,selectedIngredient,g)},{replacement->proposedDish=MealEngine.replaceIngredient(proposedDish!!,selectedIngredient,replacement);screen=Screen.DISH},{screen=Screen.DISH})
+   Screen.INGREDIENT->{
+    val dish=proposedDish
+    if(dish!=null && selectedIngredient in dish.ingredients.indices){
+     IngredientEditor(dish,selectedIngredient,
+      {g->proposedDish=proposedDish?.let{MealEngine.resizeIngredient(it,selectedIngredient,g)}},
+      {replacement->proposedDish=proposedDish?.let{MealEngine.replaceIngredient(it,selectedIngredient,replacement)};screen=Screen.DISH},
+      {screen=Screen.DISH})
+    }else screen=Screen.MEALS
+   }
    Screen.DAY_CLOSE->DayClose(TitanEngine.closeDay(currentPlan(),meals),store.remainingDaysInWeek()){store.saveDay(meals,currentPlan(),closed=true);screen=Screen.WEEK}
    Screen.WEEK->WeekHistory(store.weekHistory(),{screen=Screen.WEEK_REVIEW},{screen=Screen.BODY}){screen=Screen.TODAY}
    Screen.BODY->BodyProgress(store.bodyHistory(),{w,waist->store.saveBodyEntry(w,waist)},{screen=Screen.TODAY})
