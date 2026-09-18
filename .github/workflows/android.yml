@@ -1,7 +1,7 @@
 name: Build TITAN Beta APK
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'aion/**' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
