@@ -130,7 +130,7 @@ private fun nextScreen(s:Screen)=when(s){Screen.TODAY->Screen.MEALS;Screen.MEALS
 @Composable private fun TitanMark(){
  Column(Modifier.width(154.dp).height(100.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
   Text("TITÁN",fontSize=34.sp,fontWeight=FontWeight.Black,letterSpacing=3.sp,color=TitanText)
-  Text("RECOMPOSITION",fontSize=9.sp,fontWeight=FontWeight.Bold,letterSpacing=2.sp,color=TitanBlue)
+  Text("RECOMPOSITION",fontSize=9.sp,fontWeight=FontWeight.Bold,letterSpacing=2.sp,color=TitanPrimary)
  }
 }
 @Composable private fun FoodVisual(modifier:Modifier=Modifier){Canvas(modifier.clip(RoundedCornerShape(18.dp)).background(Brush.linearGradient(listOf(Color(0xFF25323A),Color(0xFF0D151B))))){val w=size.width;val h=size.height;drawCircle(Color(0xFF11191E),w*.36f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFFD9C49A),w*.26f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFF4CAF7A),w*.11f,Offset(w*.39f,h*.43f));drawCircle(Color(0xFFE6B85C),w*.10f,Offset(w*.60f,h*.43f));drawCircle(Color(0xFFB66D52),w*.11f,Offset(w*.48f,h*.62f));drawCircle(Color(0xFFF1E3C6),w*.08f,Offset(w*.64f,h*.61f));drawCircle(TitanPrimary.copy(alpha=.16f),w*.55f,Offset(w*.5f,h*.5f))}}
