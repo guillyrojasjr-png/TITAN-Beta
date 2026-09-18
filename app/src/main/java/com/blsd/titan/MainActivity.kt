@@ -10,6 +10,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -40,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
+  enableEdgeToEdge()
   val diagnostics=getSharedPreferences(TitanApplication.CRASH_PREFS,Context.MODE_PRIVATE)
   val lastCrash=diagnostics.getString(TitanApplication.CRASH_KEY,null)
   if(lastCrash!=null){
@@ -77,7 +79,7 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
  }?:emptyList())}
  fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;val plans=TitanEngine.plans(m);val base=plans.firstOrNull{it.strategy==strategy}?:plans.first();val target=store.activeTarget(base.target);return base.copy(target=target)}
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
-  Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
+  Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
   AnimatedContent(targetState=screen,transitionSpec={fadeIn(tween(260))+slideInHorizontally(tween(260)){it/10} togetherWith fadeOut(tween(180))},label="screen"){shownScreen->
   Box(Modifier.fillMaxSize()){TitanAtmosphere();
   when(shownScreen){
