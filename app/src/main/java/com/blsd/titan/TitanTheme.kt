@@ -35,6 +35,6 @@ private val TitanColors = darkColorScheme(
  onBackground=TitanText,onSurface=TitanText,onSurfaceVariant=TitanTextSecondary,error=TitanAlert
 )
 
-@Composable fun TitanTheme(content:@Composable()->Unit){
+@Composable fun TitanTheme(content: @Composable () -> Unit) {
  MaterialTheme(colorScheme=TitanColors,typography=TitanTypography,content=content)
 }
