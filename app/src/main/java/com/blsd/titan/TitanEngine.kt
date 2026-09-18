@@ -46,7 +46,7 @@ data class DailyBalance(
     val excessOverTolerance: Int
 )
 
-data class WeeklyRecalibration(
+data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class WeeklyRecalibration(
     val excessKcal: Int,
     val remainingDays: Int,
     val adjustmentPerDay: Int
@@ -118,6 +118,11 @@ object TitanEngine {
             availableToTarget = (plan.target - safeConsumed).coerceAtLeast(0),
             excessOverTolerance = excess
         )
+    }
+
+    fun closeDay(plan:CaloriePlan,meals:List<MealSlot>):DayCloseResult {
+        val b=balance(plan,meals.sumOf{it.consumedKcal})
+        return DayCloseResult(b.consumed,b.target,b.toleranceCeiling,b.excessOverTolerance,meals.count{it.status==MealStatus.CONFIRMED},meals.count{it.status==MealStatus.SKIPPED})
     }
 
     fun weeklyRecalibration(excessKcal: Int, remainingDays: Int): WeeklyRecalibration {
