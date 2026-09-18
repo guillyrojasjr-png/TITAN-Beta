@@ -27,10 +27,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable fun TitanApp() {
- var started by remember { mutableStateOf(false) }\n var calories by remember { mutableIntStateOf(0) }
+ var started by remember { mutableStateOf(false) }\n var calories by remember { mutableIntStateOf(0) }\n var meals by remember { mutableStateOf(listOf<Pair<String,Int>>()) }\n var showAdd by remember { mutableStateOf(false) }
  MaterialTheme(colorScheme = lightColorScheme(primary = Ink, background = Cream, surface = Color.White)) {
   Surface(Modifier.fillMaxSize(), color = Cream) {
-   if (!started) Welcome { started = true } else Today(calories) { calories += 500 }
+   if (!started) Welcome { started = true } else if(showAdd) AddMeal(onAdd={n,k-> meals=meals+(n to k); calories+=k; showAdd=false}, onBack={showAdd=false}) else Today(calories, meals, { showAdd=true })
   }
  }
 }
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
  }
 }
 
-@Composable private fun Today(calories: Int, addMeal: () -> Unit) {
+@Composable private fun Today(calories: Int, meals: List<Pair<String,Int>>, addMeal: () -> Unit) {
  Column(Modifier.fillMaxSize().padding(24.dp)) {
   Spacer(Modifier.height(34.dp))
   Text("HOY", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)
@@ -65,6 +65,24 @@ class MainActivity : ComponentActivity() {
    }
   }
   Spacer(Modifier.height(18.dp))
-  Button(onClick=addMeal, modifier=Modifier.fillMaxWidth().height(54.dp), shape=RoundedCornerShape(16.dp)) { Text("＋ REGISTRAR COMIDA · DEMO 500 kcal") }
+  Button(onClick=addMeal, modifier=Modifier.fillMaxWidth().height(54.dp), shape=RoundedCornerShape(16.dp)) { Text("＋ REGISTRAR COMIDA") }\n  Spacer(Modifier.height(18.dp))\n  Text("COMIDAS DE HOY", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)\n  if(meals.isEmpty()) Text("Aún no hay comidas registradas.", color=Color.Gray) else meals.forEach { meal -> Text("✓ ${meal.first}  ·  ${meal.second} kcal", modifier=Modifier.padding(vertical=8.dp), fontSize=16.sp) }
+ }
+}
+
+
+@Composable private fun AddMeal(onAdd:(String,Int)->Unit,onBack:()->Unit) {
+ var name by remember { mutableStateOf("") }
+ var kcal by remember { mutableStateOf("") }
+ Column(Modifier.fillMaxSize().padding(24.dp)) {
+  Spacer(Modifier.height(34.dp))
+  Text("REGISTRO RÁPIDO", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)
+  Text("Añadir comida", fontSize=30.sp, fontWeight=FontWeight.Bold)
+  Spacer(Modifier.height(20.dp))
+  OutlinedTextField(value=name,onValueChange={name=it},label={Text("Alimento o plato")},modifier=Modifier.fillMaxWidth())
+  Spacer(Modifier.height(12.dp))
+  OutlinedTextField(value=kcal,onValueChange={kcal=it.filter(Char::isDigit)},label={Text("Calorías")},modifier=Modifier.fillMaxWidth())
+  Spacer(Modifier.height(18.dp))
+  Button(onClick={val k=kcal.toIntOrNull();if(name.isNotBlank()&&k!=null&&k>0)onAdd(name,k)},modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp)){Text("AÑADIR")}
+  TextButton(onClick=onBack,modifier=Modifier.fillMaxWidth()){Text("CANCELAR")}
  }
 }
