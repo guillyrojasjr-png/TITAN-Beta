@@ -1,6 +1,13 @@
 package com.blsd.titan
 
 import android.os.Bundle
+import android.content.Context
+import android.graphics.Typeface
+import android.view.Gravity
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -31,7 +38,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 
 class MainActivity:ComponentActivity(){
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{TitanTheme{TitanApp()}}}
+ override fun onCreate(savedInstanceState:Bundle?){
+  super.onCreate(savedInstanceState)
+  val diagnostics=getSharedPreferences(TitanApplication.CRASH_PREFS,Context.MODE_PRIVATE)
+  val lastCrash=diagnostics.getString(TitanApplication.CRASH_KEY,null)
+  if(lastCrash!=null){
+   val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(32,48,32,32)}
+   box.addView(TextView(this).apply{text="TITÁN — DIAGNÓSTICO DE ARRANQUE";textSize=20f;setTypeface(null,Typeface.BOLD)})
+   box.addView(TextView(this).apply{text="Se detectó el cierre anterior. Este informe identifica el fallo exacto:\n\n$lastCrash";textSize=12f;setTextIsSelectable(true)},LinearLayout.LayoutParams(-1,0,1f))
+   box.addView(Button(this).apply{text="REINTENTAR TITÁN";setOnClickListener{diagnostics.edit().remove(TitanApplication.CRASH_KEY).apply();recreate()}})
+   setContentView(ScrollView(this).apply{addView(box)})
+   return
+  }
+  setContent{TitanTheme{TitanApp()}}
+ }
 }
 private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MAINTENANCE,STRATEGY,TODAY,MEALS,DISH,ALTERNATIVES,INGREDIENT,DAY_CLOSE,WEEK,WEEK_REVIEW,BODY,ADD,SOCIAL}
 
