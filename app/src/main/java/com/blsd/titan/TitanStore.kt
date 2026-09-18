@@ -5,7 +5,9 @@ import java.time.LocalDate
 
 data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy)
 data class SessionDay(val date:String,val meals:List<MealSlot>,val createdNew:Boolean)
-data class BodyEntry(val date:String,val weightKg:Double,val waistCm:Double?)\ndata class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)\ndata class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
+data class BodyEntry(val date:String,val weightKg:Double,val waistCm:Double?)
+data class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)
+data class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
 
 class TitanStore(context:Context){
  private val p=context.getSharedPreferences("titan_beta",Context.MODE_PRIVATE)
