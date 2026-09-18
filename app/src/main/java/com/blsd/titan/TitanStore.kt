@@ -4,7 +4,7 @@ import android.content.Context
 import java.time.LocalDate
 
 data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy)
-data class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)\ndata class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
+data class BodyEntry(val date:String,val weightKg:Double,val waistCm:Double?)\ndata class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)\ndata class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
 
 class TitanStore(context:Context){
  private val p=context.getSharedPreferences("titan_beta",Context.MODE_PRIVATE)
@@ -36,6 +36,16 @@ class TitanStore(context:Context){
   val raw=p.getString("target_history","").orEmpty()
   if(raw.isBlank())return emptyList()
   return raw.split("~").mapNotNull{row->val a=row.split("|");if(a.size<4)null else runCatching{TargetChange(a[0],a[1].toInt(),a[2].toInt(),a.drop(3).joinToString(" "))}.getOrNull()}
+ }
+ fun saveBodyEntry(weightKg:Double,waistCm:Double?,date:String=LocalDate.now().toString()){
+  val history=p.getString("body_history","").orEmpty()
+  val row=listOf(date,weightKg,waistCm?:"").joinToString("|")
+  val rows=history.split("~").filter{it.isNotBlank()&&!it.startsWith(date+"|")}+row
+  p.edit().putString("body_history",rows.joinToString("~")).apply()
+ }
+ fun bodyHistory():List<BodyEntry>{
+  val raw=p.getString("body_history","").orEmpty();if(raw.isBlank())return emptyList()
+  return raw.split("~").mapNotNull{row->val a=row.split("|");if(a.size<2)null else runCatching{BodyEntry(a[0],a[1].toDouble(),a.getOrNull(2)?.toDoubleOrNull())}.getOrNull()}.sortedBy{it.date}
  }
  fun clear(){p.edit().clear().apply()}
 }
