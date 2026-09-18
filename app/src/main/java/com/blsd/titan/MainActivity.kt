@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -136,10 +137,11 @@ private fun nextScreen(s:Screen)=when(s){Screen.TODAY->Screen.MEALS;Screen.MEALS
   Text("DATOS QUE TE LLEVAN MÁS LEJOS",fontSize=7.sp,fontWeight=FontWeight.SemiBold,letterSpacing=1.sp,color=TitanTextSecondary)
  }
 }
+private fun foodPhoto(label:String):String { val n=label.lowercase();return when { "avena" in n||"yogur" in n->"https://images.unsplash.com/photo-1627308594190-a057cd4bfac8?auto=format&fit=crop&w=1200&q=85";"pollo" in n||"arroz" in n->"https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=85";"salm" in n||"pesc" in n->"https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=1200&q=85";"pasta" in n||"pavo" in n->"https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1200&q=85";"tortilla" in n||"huevo" in n->"https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1200&q=85";else->"https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=85"}}
 @Composable private fun FoodVisual(modifier:Modifier=Modifier,label:String="PLATO TITÁN"){
- Box(modifier.clip(RoundedCornerShape(TitanDimens.CardRadius)).background(Brush.linearGradient(listOf(Color(0xFF24323A),Color(0xFF10171C)))),contentAlignment=Alignment.Center){
-  Canvas(Modifier.fillMaxSize()){val w=size.width;val h=size.height;drawCircle(Color(0xFF202A2E),w*.31f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFFE8D7A8),w*.24f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFF6D9D59),w*.10f,Offset(w*.38f,h*.43f));drawCircle(Color(0xFFD69B55),w*.10f,Offset(w*.60f,h*.43f));drawCircle(Color(0xFFB96552),w*.11f,Offset(w*.48f,h*.62f));drawCircle(Color(0xFFF0E6CC),w*.08f,Offset(w*.64f,h*.61f))}
-  Surface(color=Color.Black.copy(alpha=.55f),shape=RoundedCornerShape(8.dp),modifier=Modifier.align(Alignment.BottomStart).padding(10.dp)){Text(label,Modifier.padding(horizontal=8.dp,vertical=4.dp),fontSize=9.sp,fontWeight=FontWeight.Bold)}
+ Box(modifier.clip(RoundedCornerShape(TitanDimens.CardRadius))){
+  AsyncImage(model=foodPhoto(label),contentDescription=label,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+  Surface(color=Color.Black.copy(alpha=.58f),shape=RoundedCornerShape(8.dp),modifier=Modifier.align(Alignment.BottomStart).padding(10.dp)){Text(label,Modifier.padding(horizontal=8.dp,vertical=4.dp),fontSize=9.sp,fontWeight=FontWeight.Bold)}
  }
 }
 @Composable private fun Welcome(next:()->Unit){val pulse=rememberInfiniteTransition(label="hero");val glow by pulse.animateFloat(.72f,1f,infiniteRepeatable(tween(1800),RepeatMode.Reverse),label="glow");Box(Modifier.fillMaxSize()){Canvas(Modifier.fillMaxSize()){val w=size.width;val h=size.height;drawCircle(TitanPrimary.copy(alpha=.08f*glow),w*.7f,Offset(w*.5f,h*.18f));drawLine(TitanText.copy(alpha=.16f),Offset(0f,h*.67f),Offset(w*.24f,h*.52f),4f);drawLine(TitanText.copy(alpha=.16f),Offset(w*.24f,h*.52f),Offset(w*.44f,h*.66f),4f);drawLine(TitanText.copy(alpha=.12f),Offset(w*.35f,h*.66f),Offset(w*.68f,h*.43f),4f);drawLine(TitanText.copy(alpha=.12f),Offset(w*.68f,h*.43f),Offset(w,h*.65f),4f)};Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.SpaceBetween,horizontalAlignment=Alignment.CenterHorizontally){Column(Modifier.padding(top=54.dp),horizontalAlignment=Alignment.CenterHorizontally){TitanMark();Text("T I T Á N",style=MaterialTheme.typography.headlineLarge);Text("DATOS QUE TE LLEVAN MÁS LEJOS",style=MaterialTheme.typography.labelLarge,color=TitanPrimary);Spacer(Modifier.height(52.dp));Text("MÁS QUE UNA APP.\nUN MÉTODO.",style=MaterialTheme.typography.headlineMedium,textAlign=TextAlign.Center,lineHeight=34.sp);Spacer(Modifier.height(18.dp));Text("NUTRICIÓN INTELIGENTE  •  RENDIMIENTO REAL\nHÁBITOS SOSTENIBLES  •  TU MEJOR VERSIÓN",color=TitanTextSecondary,textAlign=TextAlign.Center,lineHeight=22.sp,fontSize=12.sp)};Column(Modifier.fillMaxWidth()){Text("DISCIPLINA HOY. RESULTADOS MAÑANA.",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Center);Spacer(Modifier.height(14.dp));PrimaryButton("COMENZAR",next)}}}}
