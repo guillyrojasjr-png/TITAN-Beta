@@ -20,8 +20,8 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk TITAN-Beta-0.1-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk TITAN-Beta-0.2.1-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: TITAN-Beta-0.1-debug
-          path: TITAN-Beta-0.1-debug.apk
+          name: TITAN-Beta-0.2.1-debug
+          path: TITAN-Beta-0.2.1-debug.apk
