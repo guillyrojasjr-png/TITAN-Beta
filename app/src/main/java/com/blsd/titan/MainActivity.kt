@@ -38,7 +38,7 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
 @Composable fun TitanApp(){
  val context=LocalContext.current
  val store=remember{TitanStore(context)}
- val saved=remember{store.load()}
+ val saved=remember{runCatching{store.load()}.getOrNull()}
  var screen by remember{mutableStateOf(if(saved!=null)Screen.TODAY else Screen.WELCOME)}
  var sex by remember{mutableStateOf(saved?.sex?:Sex.MALE)}
  var age by remember{mutableStateOf((saved?.age?:39).toString())};var height by remember{mutableStateOf((saved?.heightCm?:170.0).toInt().toString())};var weight by remember{mutableStateOf((saved?.weightKg?:93.0).toInt().toString())}
@@ -46,7 +46,15 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
  var sessions by remember{mutableStateOf("4")};var minutes by remember{mutableStateOf("75")};var trainingIntensity by remember{mutableStateOf(TrainingIntensity.HIGH)}
  var estimate by remember{mutableStateOf<EnergyEstimate?>(saved?.let{EnergyEstimate(0,0,0,0,it.maintenance)})};var strategy by remember{mutableStateOf(saved?.strategy?:Strategy.MODERATE)}
  var selectedMealId by remember{mutableStateOf<String?>(null)};var proposedDish by remember{mutableStateOf<Dish?>(null)};var selectedIngredient by remember{mutableStateOf(0)}
- var meals by remember{mutableStateOf(saved?.let{val base=TitanEngine.plans(it.maintenance).first{p->p.strategy==it.strategy};store.ensureToday(base.copy(target=store.activeTarget(base.target))).meals}?:emptyList())}
+ var meals by remember{mutableStateOf(saved?.let{
+  runCatching{
+   val base=TitanEngine.plans(it.maintenance).first{p->p.strategy==it.strategy}
+   store.ensureToday(base.copy(target=store.activeTarget(base.target))).meals
+  }.getOrElse{
+   store.clear()
+   emptyList()
+  }
+ }?:emptyList())}
  fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;val base=TitanEngine.plans(m).first{it.strategy==strategy};val target=store.activeTarget(base.target);return base.copy(target=target)}
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
   Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
