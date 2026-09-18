@@ -4,7 +4,7 @@ import android.content.Context
 import java.time.LocalDate
 
 data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy)
-data class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
+data class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)\ndata class DayRecord(val date:String,val target:Int,val tolerance:Int,val consumed:Int,val excess:Int,val confirmed:Int,val skipped:Int,val closed:Boolean)
 
 class TitanStore(context:Context){
  private val p=context.getSharedPreferences("titan_beta",Context.MODE_PRIVATE)
@@ -23,6 +23,19 @@ class TitanStore(context:Context){
  fun weekHistory(today:LocalDate=LocalDate.now()):List<DayRecord>{
   val monday=today.minusDays((today.dayOfWeek.value-1).toLong())
   return (0L..6L).mapNotNull{n->val d=monday.plusDays(n).toString();val k=dayKey(d);if(!p.contains(k+"_target"))null else DayRecord(d,p.getInt(k+"_target",0),p.getInt(k+"_tolerance",0),p.getInt(k+"_consumed",0),p.getInt(k+"_excess",0),p.getInt(k+"_confirmed",0),p.getInt(k+"_skipped",0),p.getBoolean(k+"_closed",false))}
+ }
+ fun activeTarget(defaultTarget:Int)=p.getInt("active_target",defaultTarget)
+ fun applyWeeklyAdjustment(adjustment:WeeklyAdjustment,date:String=LocalDate.now().toString()){
+  if(adjustment.nextTarget<=0)return
+  val history=p.getString("target_history","").orEmpty()
+  val safeReason=adjustment.reason.replace("|"," ").replace("~"," ")
+  val row=listOf(date,adjustment.currentTarget,adjustment.nextTarget,safeReason).joinToString("|")
+  p.edit().putInt("active_target",adjustment.nextTarget).putString("target_history",if(history.isBlank())row else history+"~"+row).apply()
+ }
+ fun targetHistory():List<TargetChange>{
+  val raw=p.getString("target_history","").orEmpty()
+  if(raw.isBlank())return emptyList()
+  return raw.split("~").mapNotNull{row->val a=row.split("|");if(a.size<4)null else runCatching{TargetChange(a[0],a[1].toInt(),a[2].toInt(),a.drop(3).joinToString(" "))}.getOrNull()}
  }
  fun clear(){p.edit().clear().apply()}
 }
