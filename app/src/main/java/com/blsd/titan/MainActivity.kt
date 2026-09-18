@@ -3,96 +3,55 @@ package com.blsd.titan
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Cream = Color(0xFFF7F5EF)
-private val Ink = Color(0xFF171717)
-private val Accent = Color(0xFF8EC5FF)
-
-class MainActivity : ComponentActivity() {
- override fun onCreate(savedInstanceState: Bundle?) {
-  super.onCreate(savedInstanceState)
-  setContent { TitanApp() }
- }
+class MainActivity:ComponentActivity(){
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{TitanTheme{TitanApp()}}}
 }
+private enum class Screen{WELCOME,PROFILE,WORK,TRAINING,MAINTENANCE,STRATEGY,TODAY,ADD}
 
-@Composable fun TitanApp() {
- var started by remember { mutableStateOf(false) }
- var meals by remember { mutableStateOf(TitanEngine.distribute(2500, listOf("Desayuno","Comida","Merienda","Cena"))) }
- var showAdd by remember { mutableStateOf(false) }
- MaterialTheme(colorScheme = lightColorScheme(primary = Ink, background = Cream, surface = Color.White)) {
-  Surface(Modifier.fillMaxSize(), color = Cream) {
-   val plan=CaloriePlan(Strategy.MODERATE,2500,2750)
-   val consumed=meals.sumOf { it.consumedKcal }
-   if(!started) Welcome{started=true} else if(showAdd) AddMeal(onAdd={n,k-> val i=meals.indexOfFirst{it.status==MealStatus.PENDING}; meals=if(i>=0) meals.mapIndexed{x,m->if(x==i)m.copy(name=n,consumedKcal=k,status=MealStatus.CONFIRMED)else m}.let(TitanEngine::redistribute) else meals+MealSlot("extra-"+meals.size,n,0,k,MealStatus.CONFIRMED);showAdd=false},onBack={showAdd=false}) else Today(plan,TitanEngine.balance(plan,consumed),meals,{showAdd=true},{id->meals=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED,consumedKcal=0)else it}.let(TitanEngine::redistribute)})
+@Composable fun TitanApp(){
+ var screen by remember{mutableStateOf(Screen.WELCOME)}
+ var sex by remember{mutableStateOf(Sex.MALE)}
+ var age by remember{mutableStateOf("39")};var height by remember{mutableStateOf("170")};var weight by remember{mutableStateOf("93")}
+ var standing by remember{mutableStateOf("7")};var moving by remember{mutableStateOf("5")};var load by remember{mutableStateOf("2")}
+ var sessions by remember{mutableStateOf("4")};var minutes by remember{mutableStateOf("75")}
+ var estimate by remember{mutableStateOf<EnergyEstimate?>(null)};var strategy by remember{mutableStateOf(Strategy.MODERATE)}
+ var meals by remember{mutableStateOf(emptyList<MealSlot>())}
+ fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;return TitanEngine.plans(m).first{it.strategy==strategy}}
+ Surface(Modifier.fillMaxSize(),color=TitanBackground){
+  when(screen){
+   Screen.WELCOME->Welcome{screen=Screen.PROFILE}
+   Screen.PROFILE->Profile(age,{age=it},height,{height=it},weight,{weight=it},sex,{sex=it}){screen=Screen.WORK}
+   Screen.WORK->Work(standing,{standing=it},moving,{moving=it},load,{load=it}){screen=Screen.TRAINING}
+   Screen.TRAINING->Training(sessions,{sessions=it},minutes,{minutes=it}){
+    val w=weight.toDoubleOrNull()?:70.0
+    val qe=QuestionnaireEngine.energy(w,ActivityQuestionnaire(standing.toDoubleOrNull()?:0.0,moving.toDoubleOrNull()?:0.0,load.toDoubleOrNull()?:0.0,WorkIntensity.MODERATE,1.0,true),TrainingQuestionnaire(sessions.toIntOrNull()?:0,minutes.toIntOrNull()?:0,TrainingIntensity.HIGH))
+    estimate=TitanEngine.estimateEnergy(UserProfile(sex,age.toIntOrNull()?:30,height.toDoubleOrNull()?:170.0,w,1.2,qe.workDailyKcal,qe.trainingDailyKcal));screen=Screen.MAINTENANCE
+   }
+   Screen.MAINTENANCE->Maintenance(estimate!!){screen=Screen.STRATEGY}
+   Screen.STRATEGY->Strategies(estimate!!.maintenance,strategy,{strategy=it}){meals=TitanEngine.distribute(currentPlan().target,listOf("Desayuno","Comida","Merienda","Cena"));screen=Screen.TODAY}
+   Screen.TODAY->{val p=currentPlan();Today(p,TitanEngine.balance(p,meals.sumOf{it.consumedKcal}),meals,{screen=Screen.ADD},{id->meals=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute)})}
+   Screen.ADD->AddMeal({n,k->val i=meals.indexOfFirst{it.status==MealStatus.PENDING};if(i>=0)meals=meals.mapIndexed{x,m->if(x==i)m.copy(name=n,consumedKcal=k,status=MealStatus.CONFIRMED)else m}.let(TitanEngine::redistribute);screen=Screen.TODAY}){screen=Screen.TODAY}
   }
  }
 }
-
-@Composable private fun Welcome(onStart: () -> Unit) {
- Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.SpaceBetween) {
-  Column(Modifier.padding(top = 72.dp)) {
-   Text("TITÁN", fontSize = 42.sp, fontWeight = FontWeight.Black, color = Ink)
-   Spacer(Modifier.height(10.dp))
-   Text("Nutrición que se adapta a tu vida.", fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-   Spacer(Modifier.height(14.dp))
-   Text("Tu objetivo, tus comidas y tu entrenamiento. TITÁN ajusta el camino sin convertirlo en una cárcel.", fontSize = 16.sp, lineHeight = 23.sp, color = Color.DarkGray)
-  }
-  Button(onClick=onStart, modifier=Modifier.fillMaxWidth().height(58.dp), shape=RoundedCornerShape(18.dp)) { Text("COMENZAR") }
- }
-}
-
-@Composable private fun Today(plan:CaloriePlan,balance:DailyBalance,meals:List<MealSlot>,addMeal:()->Unit,skipMeal:(String)->Unit) {
- Column(Modifier.fillMaxSize().padding(24.dp)) {
-  Spacer(Modifier.height(34.dp))
-  Text("HOY",fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color.Gray)
-  Text("Tu día en TITÁN",fontSize=30.sp,fontWeight=FontWeight.Bold)
-  Spacer(Modifier.height(24.dp))
-  Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(22.dp)){
-   Text("Objetivo diario · MODERADO",color=Color.Gray)
-   Text("${balance.target} kcal",fontSize=34.sp,fontWeight=FontWeight.Bold)
-   Spacer(Modifier.height(12.dp))
-   LinearProgressIndicator(progress={(balance.consumed/balance.target.toFloat()).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(8.dp),color=Accent)
-   Spacer(Modifier.height(10.dp))
-   Text("${balance.consumed} consumidas · ${balance.availableToTarget} disponibles",fontSize=14.sp)
-   Text("Margen TITÁN hasta ${balance.toleranceCeiling} kcal",fontSize=13.sp,color=Color.Gray)
-   if(balance.excessOverTolerance>0) Text("Recalibración: ${balance.excessOverTolerance} kcal sobre el margen",fontWeight=FontWeight.Bold)
-  }}
-  Spacer(Modifier.height(18.dp))
-  Button(onClick=addMeal,modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp)){Text("＋ REGISTRAR COMIDA")}
-  Spacer(Modifier.height(18.dp))
-  Text("COMIDAS DE HOY",fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color.Gray)
-  meals.forEach{meal->Card(Modifier.fillMaxWidth().padding(vertical=4.dp),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(12.dp)){
-   Text(meal.name,fontWeight=FontWeight.SemiBold)
-   Text(when(meal.status){MealStatus.PENDING->"Pendiente · objetivo ${meal.plannedKcal} kcal";MealStatus.CONFIRMED->"Confirmada · ${meal.consumedKcal} kcal";MealStatus.SKIPPED->"Omitida"},color=Color.Gray)
-   if(meal.status==MealStatus.PENDING) TextButton(onClick={skipMeal(meal.id)}){Text("OMITIR")}
-  }}}
- }
-}
-
-@Composable private fun AddMeal(onAdd:(String,Int)->Unit,onBack:()->Unit) {
- var name by remember { mutableStateOf("") }
- var kcal by remember { mutableStateOf("") }
- Column(Modifier.fillMaxSize().padding(24.dp)) {
-  Spacer(Modifier.height(34.dp))
-  Text("REGISTRO RÁPIDO", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)
-  Text("Añadir comida", fontSize=30.sp, fontWeight=FontWeight.Bold)
-  Spacer(Modifier.height(20.dp))
-  OutlinedTextField(value=name,onValueChange={name=it},label={Text("Alimento o plato")},modifier=Modifier.fillMaxWidth())
-  Spacer(Modifier.height(12.dp))
-  OutlinedTextField(value=kcal,onValueChange={kcal=it.filter(Char::isDigit)},label={Text("Calorías")},modifier=Modifier.fillMaxWidth())
-  Spacer(Modifier.height(18.dp))
-  Button(onClick={val k=kcal.toIntOrNull();if(name.isNotBlank()&&k!=null&&k>0)onAdd(name,k)},modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp)){Text("AÑADIR")}
-  TextButton(onClick=onBack,modifier=Modifier.fillMaxWidth()){Text("CANCELAR")}
- }
-}
+@Composable private fun Welcome(next:()->Unit){Column(Modifier.fillMaxSize().padding(28.dp),verticalArrangement=Arrangement.SpaceBetween){Column(Modifier.padding(top=72.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("T",fontSize=100.sp,fontWeight=FontWeight.Black);Text("T I T Á N",fontSize=34.sp,fontWeight=FontWeight.Black);Text("DATOS QUE TE LLEVAN MÁS LEJOS",fontSize=12.sp,color=TitanTextSecondary);Spacer(Modifier.height(36.dp));Text("Más que contar calorías.\nEs construir tu mejor versión.",fontSize=20.sp,lineHeight=28.sp)};PrimaryButton("Comenzar",next)}}
+@Composable private fun Header(step:String,title:String){Spacer(Modifier.height(30.dp));Text(step,color=TitanTextSecondary,fontSize=13.sp);Spacer(Modifier.height(8.dp));Text(title,fontSize=29.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.height(20.dp))}
+@Composable private fun Field(label:String,value:String,set:(String)->Unit){OutlinedTextField(value,{set(it.filter(Char::isDigit))},label={Text(label)},modifier=Modifier.fillMaxWidth().padding(vertical=5.dp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=TitanPrimary,unfocusedBorderColor=TitanDivider))}
+@Composable private fun PrimaryButton(label:String,go:()->Unit){Button(go,Modifier.fillMaxWidth().height(56.dp),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=TitanPrimary,contentColor=TitanBackground)){Text(label,fontWeight=FontWeight.Bold)}}
+@Composable private fun Profile(age:String,setAge:(String)->Unit,height:String,setHeight:(String)->Unit,weight:String,setWeight:(String)->Unit,sex:Sex,setSex:(Sex)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 1 de 4","Tus datos");Row{FilterChip(sex==Sex.MALE,{setSex(Sex.MALE)},{Text("Hombre")});Spacer(Modifier.width(8.dp));FilterChip(sex==Sex.FEMALE,{setSex(Sex.FEMALE)},{Text("Mujer")})};Field("Edad",age,setAge);Field("Altura (cm)",height,setHeight);Field("Peso (kg)",weight,setWeight);Spacer(Modifier.weight(1f));PrimaryButton("Continuar",next)}}
+@Composable private fun Work(a:String,sa:(String)->Unit,b:String,sb:(String)->Unit,c:String,sc:(String)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 2 de 4","Tu actividad diaria");Text("Queremos medir tu día real, no asignarte una etiqueta genérica.",color=TitanTextSecondary);Field("Horas de pie",a,sa);Field("Horas en movimiento",b,sb);Field("Horas con cargas / trabajo físico",c,sc);Spacer(Modifier.weight(1f));PrimaryButton("Continuar",next)}}
+@Composable private fun Training(a:String,sa:(String)->Unit,b:String,sb:(String)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 3 de 4","Tu entrenamiento");Text("Frecuencia y duración alimentan la estimación inicial. TITÁN la recalibrará con datos reales.",color=TitanTextSecondary);Field("Sesiones por semana",a,sa);Field("Minutos por sesión",b,sb);Spacer(Modifier.weight(1f));PrimaryButton("Calcular mantenimiento",next)}}
+@Composable private fun Maintenance(e:EnergyEstimate,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 4 de 4","Tu mantenimiento");Text("Según tus datos, tu gasto energético diario estimado es:",color=TitanTextSecondary);Spacer(Modifier.height(16.dp));Card(colors=CardDefaults.cardColors(containerColor=TitanCard),shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text(e.maintenance.toString()+" kcal",fontSize=38.sp,fontWeight=FontWeight.Bold);Text("VER CÓMO SE CALCULÓ ›",color=TitanPrimary);Spacer(Modifier.height(14.dp));Text("Basal "+e.bmr+" · actividad base "+e.baseWithActivity+" · trabajo "+e.dailyActivityKcal+" · entrenamiento "+e.trainingKcal,color=TitanTextSecondary)}};Spacer(Modifier.weight(1f));PrimaryButton("Elegir estrategia",next)}}
+@Composable private fun Strategies(m:Int,current:Strategy,set:(Strategy)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Configuración inicial","Elige tu estrategia");TitanEngine.plans(m).forEach{p->Card(onClick={set(p.strategy)},modifier=Modifier.fillMaxWidth().padding(vertical=6.dp),colors=CardDefaults.cardColors(containerColor=if(p.strategy==current)TitanCard else TitanSurface)){Column(Modifier.padding(18.dp)){Text(when(p.strategy){Strategy.LOW->"Bajo";Strategy.MODERATE->"Moderado";Strategy.RIGOROUS->"Riguroso"},fontWeight=FontWeight.Bold);Text(p.target.toString()+" kcal · margen hasta "+p.toleranceCeiling,color=TitanTextSecondary)}}};Spacer(Modifier.weight(1f));PrimaryButton("Entrar en TITÁN",next)}}
+@Composable private fun Today(plan:CaloriePlan,b:DailyBalance,meals:List<MealSlot>,add:()->Unit,skip:(String)->Unit){Column(Modifier.padding(22.dp)){Spacer(Modifier.height(28.dp));Text("Hoy",fontSize=32.sp,fontWeight=FontWeight.Bold);Text("Todo lo importante, de un vistazo.",color=TitanTextSecondary);Spacer(Modifier.height(18.dp));Card(colors=CardDefaults.cardColors(containerColor=TitanCard),shape=RoundedCornerShape(26.dp)){Column(Modifier.fillMaxWidth().padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally){Text("Te quedan",color=TitanTextSecondary);Text(b.availableToTarget.toString(),fontSize=48.sp,fontWeight=FontWeight.Bold);Text("kcal");Spacer(Modifier.height(14.dp));LinearProgressIndicator(progress={(b.consumed/plan.target.toFloat()).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(8.dp),color=TitanPrimary,trackColor=TitanDivider);Text(b.consumed.toString()+" consumidas · objetivo "+plan.target,color=TitanTextSecondary)}};Spacer(Modifier.height(16.dp));PrimaryButton("Ver / registrar comidas",add);Spacer(Modifier.height(12.dp));meals.forEach{m->Card(colors=CardDefaults.cardColors(containerColor=TitanSurface),modifier=Modifier.fillMaxWidth().padding(vertical=3.dp)){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(m.name,fontWeight=FontWeight.SemiBold);Text(when(m.status){MealStatus.PENDING->"Pendiente · "+m.plannedKcal+" kcal";MealStatus.CONFIRMED->"Comida hecha · "+m.consumedKcal+" kcal";MealStatus.SKIPPED->"Omitida"},color=TitanTextSecondary)};if(m.status==MealStatus.PENDING)TextButton({skip(m.id)}){Text("Omitir")}}}}}}
+@Composable private fun AddMeal(add:(String,Int)->Unit,back:()->Unit){var n by remember{mutableStateOf("")};var k by remember{mutableStateOf("")};Column(Modifier.padding(24.dp)){Header("Registro rápido","Añadir comida");OutlinedTextField(n,{n=it},label={Text("Buscar alimento / plato")},modifier=Modifier.fillMaxWidth());Field("Calorías",k,{k=it});Spacer(Modifier.weight(1f));PrimaryButton("Añadir"){val x=k.toIntOrNull();if(n.isNotBlank()&&x!=null&&x>0)add(n,x)};TextButton(back,Modifier.fillMaxWidth()){Text("Cancelar")}}}
