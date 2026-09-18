@@ -6,6 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +44,9 @@ private enum class Screen{WELCOME,PROFILE,WORK,WORK_DETAIL,TRAINING,MAINTENANCE,
  var meals by remember{mutableStateOf(saved?.let{val base=TitanEngine.plans(it.maintenance).first{p->p.strategy==it.strategy};store.ensureToday(base.copy(target=store.activeTarget(base.target))).meals}?:emptyList())}
  fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;val base=TitanEngine.plans(m).first{it.strategy==strategy};val target=store.activeTarget(base.target);return base.copy(target=target)}
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
+  Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
+  AnimatedContent(targetState=screen,transitionSpec={fadeIn(tween(260))+slideInHorizontally(tween(260)){it/10} togetherWith fadeOut(tween(180))},label="screen"){screen->
+  Box(Modifier.fillMaxSize()){TitanAtmosphere();
   when(screen){
    Screen.WELCOME->Welcome{screen=Screen.PROFILE}
    Screen.PROFILE->Profile(age,{age=it},height,{height=it},weight,{weight=it},sex,{sex=it}){screen=Screen.WORK}
@@ -68,8 +76,15 @@ private enum class Screen{WELCOME,PROFILE,WORK,WORK_DETAIL,TRAINING,MAINTENANCE,
    Screen.SOCIAL->SocialMealScreen({name,kcal->val updated=meals+MealSlot("social-"+System.currentTimeMillis(),name,kcal,kcal,MealStatus.CONFIRMED);meals=updated;store.saveDay(updated,currentPlan());screen=Screen.TODAY},{screen=Screen.TODAY})
    Screen.ADD->AddMeal({n,k->val i=meals.indexOfFirst{it.status==MealStatus.PENDING};if(i>=0){val updated=meals.mapIndexed{x,m->if(x==i)m.copy(name=n,consumedKcal=k,status=MealStatus.CONFIRMED)else m}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan())};screen=Screen.TODAY}){screen=Screen.TODAY}
   }
+  if(screen!=Screen.WELCOME){TitanArrows(screen,{screen=previousScreen(screen)},{screen=nextScreen(screen)})}
+  }}
+  }
  }
 }
+private fun previousScreen(s:Screen)=when(s){Screen.PROFILE->Screen.WELCOME;Screen.WORK->Screen.PROFILE;Screen.WORK_DETAIL->Screen.WORK;Screen.TRAINING->Screen.WORK_DETAIL;Screen.MAINTENANCE->Screen.TRAINING;Screen.STRATEGY->Screen.MAINTENANCE;Screen.TODAY->Screen.STRATEGY;Screen.MEALS->Screen.TODAY;Screen.DISH->Screen.MEALS;Screen.ALTERNATIVES->Screen.DISH;Screen.INGREDIENT->Screen.DISH;Screen.DAY_CLOSE->Screen.TODAY;Screen.WEEK->Screen.TODAY;Screen.WEEK_REVIEW->Screen.WEEK;Screen.BODY->Screen.WEEK;Screen.ADD->Screen.TODAY;Screen.SOCIAL->Screen.ADD;else->s}
+private fun nextScreen(s:Screen)=when(s){Screen.WELCOME->Screen.PROFILE;Screen.PROFILE->Screen.WORK;Screen.WORK->Screen.WORK_DETAIL;Screen.WORK_DETAIL->Screen.TRAINING;Screen.TRAINING->Screen.MAINTENANCE;Screen.MAINTENANCE->Screen.STRATEGY;Screen.STRATEGY->Screen.TODAY;Screen.TODAY->Screen.MEALS;Screen.MEALS->Screen.ADD;Screen.ADD->Screen.SOCIAL;Screen.WEEK->Screen.BODY;else->s}
+@Composable private fun TitanArrows(s:Screen,back:()->Unit,next:()->Unit){Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp).align(Alignment.TopCenter),horizontalArrangement=Arrangement.SpaceBetween){Text("‹",fontSize=38.sp,color=TitanText,modifier=Modifier.clickable{back()}.padding(8.dp));val n=nextScreen(s);Text("›",fontSize=38.sp,color=if(n!=s)TitanPrimary else TitanDivider,modifier=Modifier.clickable(enabled=n!=s){next()}.padding(8.dp))}}
+@Composable private fun TitanAtmosphere(){Canvas(Modifier.fillMaxSize()){val h=size.height;val w=size.width;drawCircle(Color(0x182ED4B7),w*.7f,Offset(w*.88f,h*.12f));drawCircle(Color(0x1057C7E6),w*.9f,Offset(w*.1f,h*.58f));val y=h*.91f;drawLine(Color(0x302A3642),Offset(0f,y),Offset(w*.18f,y-h*.07f),3f);drawLine(Color(0x302A3642),Offset(w*.18f,y-h*.07f),Offset(w*.36f,y),3f);drawLine(Color(0x302A3642),Offset(w*.3f,y),Offset(w*.55f,y-h*.12f),3f);drawLine(Color(0x302A3642),Offset(w*.55f,y-h*.12f),Offset(w*.82f,y),3f);drawLine(Color(0x302A3642),Offset(w*.7f,y),Offset(w*.9f,y-h*.08f),3f)}}
 @Composable private fun TitanMark(){Canvas(Modifier.size(116.dp)){val w=size.width;val h=size.height;val sw=w*.12f;drawLine(TitanText,Offset(w*.16f,h*.22f),Offset(w*.46f,h*.22f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.31f,h*.22f),Offset(w*.31f,h*.78f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.54f,h*.22f),Offset(w*.84f,h*.22f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.69f,h*.22f),Offset(w*.69f,h*.78f),sw,StrokeCap.Square)}}
 @Composable private fun Welcome(next:()->Unit){Column(Modifier.fillMaxSize().background(TitanBackground).padding(28.dp),verticalArrangement=Arrangement.SpaceBetween,horizontalAlignment=Alignment.CenterHorizontally){Column(Modifier.padding(top=62.dp),horizontalAlignment=Alignment.CenterHorizontally){TitanMark();Text("T I T Á N",style=MaterialTheme.typography.headlineLarge);Text("DATOS QUE TE LLEVAN MÁS LEJOS",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary);Spacer(Modifier.height(46.dp));Text("MÁS QUE UNA APP. UN MÉTODO.",style=MaterialTheme.typography.headlineMedium,textAlign=TextAlign.Center);Spacer(Modifier.height(16.dp));Text("Nutrición inteligente  ·  Rendimiento real\\nHábitos sostenibles  ·  Tu mejor versión",color=TitanTextSecondary,textAlign=TextAlign.Center,lineHeight=24.sp)};Column(Modifier.fillMaxWidth()){Text("DISCIPLINA HOY. RESULTADOS MAÑANA.",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Center);Spacer(Modifier.height(14.dp));PrimaryButton("Comenzar",next)}}}
 @Composable private fun Header(step:String,title:String){Spacer(Modifier.height(26.dp));Text(step.uppercase(),color=TitanPrimary,style=MaterialTheme.typography.labelLarge);Spacer(Modifier.height(8.dp));Text(title,style=MaterialTheme.typography.headlineLarge);Spacer(Modifier.height(20.dp))}
