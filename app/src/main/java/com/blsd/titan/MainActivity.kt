@@ -3,7 +3,9 @@ package com.blsd.titan
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.Canvas\nimport androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,7 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp\nimport androidx.compose.ui.graphics.StrokeCap\nimport androidx.compose.ui.graphics.drawscope.Stroke\nimport androidx.compose.ui.geometry.Offset\nimport androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 
 class MainActivity:ComponentActivity(){
@@ -65,7 +71,8 @@ private enum class Screen{WELCOME,PROFILE,WORK,WORK_DETAIL,TRAINING,MAINTENANCE,
  }
 }
 @Composable private fun TitanMark(){Canvas(Modifier.size(116.dp)){val w=size.width;val h=size.height;val sw=w*.12f;drawLine(TitanText,Offset(w*.16f,h*.22f),Offset(w*.46f,h*.22f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.31f,h*.22f),Offset(w*.31f,h*.78f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.54f,h*.22f),Offset(w*.84f,h*.22f),sw,StrokeCap.Square);drawLine(TitanText,Offset(w*.69f,h*.22f),Offset(w*.69f,h*.78f),sw,StrokeCap.Square)}}
-@Composable private fun Welcome(next:()->Unit){Column(Modifier.fillMaxSize().background(TitanBackground).padding(28.dp),verticalArrangement=Arrangement.SpaceBetween,horizontalAlignment=Alignment.CenterHorizontally){Column(Modifier.padding(top=62.dp),horizontalAlignment=Alignment.CenterHorizontally){TitanMark();Text("T I T Á N",style=MaterialTheme.typography.headlineLarge);Text("DATOS QUE TE LLEVAN MÁS LEJOS",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary);Spacer(Modifier.height(46.dp));Text("MÁS QUE UNA APP. UN MÉTODO.",style=MaterialTheme.typography.headlineMedium,textAlign=TextAlign.Center);Spacer(Modifier.height(16.dp));Text("Nutrición inteligente  ·  Rendimiento real\nHábitos sostenibles  ·  Tu mejor versión",color=TitanTextSecondary,textAlign=TextAlign.Center,lineHeight=24.sp)};Column(Modifier.fillMaxWidth()){Text("DISCIPLINA HOY. RESULTADOS MAÑANA.",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Center);Spacer(Modifier.height(14.dp));PrimaryButton("Comenzar",next)}}}
+@Composable private fun Welcome(next:()->Unit){Column(Modifier.fillMaxSize().background(TitanBackground).padding(28.dp),verticalArrangement=Arrangement.SpaceBetween,horizontalAlignment=Alignment.CenterHorizontally){Column(Modifier.padding(top=62.dp),horizontalAlignment=Alignment.CenterHorizontally){TitanMark();Text("T I T Á N",style=MaterialTheme.typography.headlineLarge);Text("DATOS QUE TE LLEVAN MÁS LEJOS",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary);Spacer(Modifier.height(46.dp));Text("MÁS QUE UNA APP. UN MÉTODO.",style=MaterialTheme.typography.headlineMedium,textAlign=TextAlign.Center);Spacer(Modifier.height(16.dp));Text("Nutrición inteligente  ·  Rendimiento real
+Hábitos sostenibles  ·  Tu mejor versión",color=TitanTextSecondary,textAlign=TextAlign.Center,lineHeight=24.sp)};Column(Modifier.fillMaxWidth()){Text("DISCIPLINA HOY. RESULTADOS MAÑANA.",style=MaterialTheme.typography.labelLarge,color=TitanTextSecondary,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Center);Spacer(Modifier.height(14.dp));PrimaryButton("Comenzar",next)}}}
 @Composable private fun Header(step:String,title:String){Spacer(Modifier.height(26.dp));Text(step.uppercase(),color=TitanPrimary,style=MaterialTheme.typography.labelLarge);Spacer(Modifier.height(8.dp));Text(title,style=MaterialTheme.typography.headlineLarge);Spacer(Modifier.height(20.dp))}
 @Composable private fun Field(label:String,value:String,set:(String)->Unit){OutlinedTextField(value,{set(it.filter(Char::isDigit))},label={Text(label)},modifier=Modifier.fillMaxWidth().padding(vertical=5.dp),colors=OutlinedTextFieldDefaults.colors(focusedBorderColor=TitanPrimary,unfocusedBorderColor=TitanDivider))}
 @Composable private fun PrimaryButton(label:String,go:()->Unit){Button(go,Modifier.fillMaxWidth().height(56.dp),shape=RoundedCornerShape(18.dp),colors=ButtonDefaults.buttonColors(containerColor=TitanPrimary,contentColor=TitanBackground)){Text(label,fontWeight=FontWeight.Bold)}}
