@@ -27,10 +27,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable fun TitanApp() {
- var started by remember { mutableStateOf(false) }
+ var started by remember { mutableStateOf(false) }\n var calories by remember { mutableIntStateOf(0) }
  MaterialTheme(colorScheme = lightColorScheme(primary = Ink, background = Cream, surface = Color.White)) {
   Surface(Modifier.fillMaxSize(), color = Cream) {
-   if (!started) Welcome { started = true } else Today()
+   if (!started) Welcome { started = true } else Today(calories) { calories += 500 }
   }
  }
 }
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
  }
 }
 
-@Composable private fun Today() {
+@Composable private fun Today(calories: Int, addMeal: () -> Unit) {
  Column(Modifier.fillMaxSize().padding(24.dp)) {
   Spacer(Modifier.height(34.dp))
   Text("HOY", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)
@@ -57,14 +57,14 @@ class MainActivity : ComponentActivity() {
   Card(Modifier.fillMaxWidth(), shape=RoundedCornerShape(24.dp)) {
    Column(Modifier.padding(22.dp)) {
     Text("Objetivo diario", color=Color.Gray)
-    Text("— kcal", fontSize=34.sp, fontWeight=FontWeight.Bold)
+    Text("2500 kcal", fontSize=34.sp, fontWeight=FontWeight.Bold)
     Spacer(Modifier.height(12.dp))
-    LinearProgressIndicator(progress={0f}, modifier=Modifier.fillMaxWidth().height(8.dp), color=Accent)
+    LinearProgressIndicator(progress={(calories / 2500f).coerceIn(0f,1f)}, modifier=Modifier.fillMaxWidth().height(8.dp), color=Accent)
     Spacer(Modifier.height(10.dp))
-    Text("La Beta 0.1 ya está viva. El motor nutricional se conectará a este dashboard.", fontSize=14.sp)
+    Text("$calories consumidas · ${(2500-calories).coerceAtLeast(0)} disponibles", fontSize=14.sp)
    }
   }
   Spacer(Modifier.height(18.dp))
-  Button(onClick={}, modifier=Modifier.fillMaxWidth().height(54.dp), shape=RoundedCornerShape(16.dp)) { Text("＋ REGISTRAR COMIDA") }
+  Button(onClick=addMeal, modifier=Modifier.fillMaxWidth().height(54.dp), shape=RoundedCornerShape(16.dp)) { Text("＋ REGISTRAR COMIDA · DEMO 500 kcal") }
  }
 }
