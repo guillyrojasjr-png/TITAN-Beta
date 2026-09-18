@@ -3,6 +3,11 @@ package com.blsd.titan
 import kotlin.math.roundToInt
 
 data class MacroTarget(val proteinG:Int,val carbsG:Int,val fatG:Int)
+data class MacroBalance(val target:MacroTarget,val proteinG:Int,val carbsG:Int,val fatG:Int){
+ val proteinRemaining get()=(target.proteinG-proteinG).coerceAtLeast(0)
+ val carbsRemaining get()=(target.carbsG-carbsG).coerceAtLeast(0)
+ val fatRemaining get()=(target.fatG-fatG).coerceAtLeast(0)
+}
 enum class IngredientGroup { PROTEIN, CARB, FAT, VEGETABLE, OTHER }
 data class Ingredient(
  val id:String,val name:String,val grams:Int,val kcalPer100:Int,val proteinPer100:Double,val carbsPer100:Double,val fatPer100:Double,val group:IngredientGroup
@@ -40,6 +45,16 @@ object MealEngine {
   FoodItem("veg","Verduras variadas",45,2.0,8.0,0.5),FoodItem("oil","Aceite de oliva",884,0.0,0.0,100.0)
  )
  val socialMeals=listOf(SocialMeal("pizza","Pizza",850),SocialMeal("burger","Hamburguesa",900),SocialMeal("sushi","Sushi",700),SocialMeal("bbq","Barbacoa",950),SocialMeal("fried-chicken","Pollo frito",900))
+ fun macroTarget(weightKg:Double,targetKcal:Int):MacroTarget{
+  val protein=(weightKg*1.8).roundToInt().coerceAtLeast(80)
+  val fat=(weightKg*0.8).roundToInt().coerceAtLeast(45)
+  val carbs=((targetKcal-protein*4-fat*9).coerceAtLeast(0)/4.0).roundToInt()
+  return MacroTarget(protein,carbs,fat)
+ }
+ fun macroBalance(target:MacroTarget,meals:List<MealSlot>):MacroBalance{
+  val p=meals.sumOf{it.proteinG};val carbs=meals.sumOf{it.carbsG};val fat=meals.sumOf{it.fatG}
+  return MacroBalance(target,p,carbs,fat)
+ }
  fun searchFoods(query:String)=foods.filter{query.isBlank()||it.name.contains(query,true)}
  fun foodKcal(food:FoodItem,grams:Int)=(food.kcalPer100*grams.coerceAtLeast(1)/100.0).roundToInt()
  fun socialKcal(meal:SocialMeal,amount:SocialAmount)=(meal.baseKcal*amount.factor).roundToInt()
