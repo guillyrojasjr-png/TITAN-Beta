@@ -66,19 +66,19 @@ object MealEngine {
   Dish("beef-rice","Ternera magra con arroz",listOf(beef,rice,veg)),
   Dish("tuna-potato","Atún con patata y verduras",listOf(tuna,potato,veg,oil))
  )
- fun propose(targetKcal:Int,macro:MacroTarget?=null,exclude:Set<String> = emptySet())=alternatives(targetKcal,macro,exclude,1).first()
+ fun propose(targetKcal:Int,macro:MacroTarget?=null,exclude:Set<String> = emptySet())=alternatives(targetKcal,macro,exclude,1).firstOrNull() ?: dishes.first()
  fun alternatives(targetKcal:Int,macro:MacroTarget?=null,exclude:Set<String> = emptySet(),limit:Int=4)=dishes.filterNot{it.id in exclude}.sortedBy{d->
   kotlin.math.abs(d.kcal-targetKcal)+(macro?.let{kotlin.math.abs(d.proteinG-it.proteinG)*2.0+kotlin.math.abs(d.carbsG-it.carbsG)*0.5}?:0.0)
  }.take(limit)
  fun ingredientAlternatives(dish:Dish,index:Int,limit:Int=4):List<Ingredient>{
-  val current=dish.ingredients[index]
+  val current=dish.ingredients.getOrNull(index) ?: return emptyList()
   val pool=listOf(chicken,turkey,tuna,beef,salmon,rice,potato,pasta,veg,oil)
   return pool.filter{it.group==current.group&&it.id!=current.id}.sortedBy{kotlin.math.abs(it.kcal-current.kcal)}.take(limit)
  }
  fun replaceIngredient(dish:Dish,index:Int,replacement:Ingredient):Dish{
-  val current=dish.ingredients[index]
+  val current=dish.ingredients.getOrNull(index) ?: return dish
   val grams=(current.kcal*100.0/replacement.kcalPer100).roundToInt().coerceAtLeast(1)
   return dish.copy(ingredients=dish.ingredients.mapIndexed{i,x->if(i==index)replacement.withGrams(grams)else x})
  }
- fun resizeIngredient(dish:Dish,index:Int,grams:Int)=dish.copy(ingredients=dish.ingredients.mapIndexed{i,x->if(i==index)x.withGrams(grams)else x})
+ fun resizeIngredient(dish:Dish,index:Int,grams:Int)=if(index !in dish.ingredients.indices) dish else dish.copy(ingredients=dish.ingredients.mapIndexed{i,x->if(i==index)x.withGrams(grams)else x})
 }

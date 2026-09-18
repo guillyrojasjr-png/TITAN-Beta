@@ -78,21 +78,22 @@ object TitanEngine {
     }
 
     fun plans(maintenance: Int): List<CaloriePlan> {
-        require(maintenance > 0)
-        val low = (maintenance * 0.90).roundToInt()
-        val moderate = (maintenance * 0.82).roundToInt()
-        val rigorous = (maintenance * 0.75).roundToInt()
+        val safeMaintenance = maintenance.coerceAtLeast(1)
+        val low = (safeMaintenance * 0.90).roundToInt()
+        val moderate = (safeMaintenance * 0.82).roundToInt()
+        val rigorous = (safeMaintenance * 0.75).roundToInt()
         return listOf(
-            CaloriePlan(Strategy.LOW, low, maintenance),
+            CaloriePlan(Strategy.LOW, low, safeMaintenance),
             CaloriePlan(Strategy.MODERATE, moderate, low),
             CaloriePlan(Strategy.RIGOROUS, rigorous, moderate)
         )
     }
 
     fun distribute(target: Int, mealNames: List<String>): List<MealSlot> {
-        require(target > 0 && mealNames.isNotEmpty())
-        val base = target / mealNames.size
-        var remainder = target - base * mealNames.size
+        if (mealNames.isEmpty()) return emptyList()
+        val safeTarget = target.coerceAtLeast(1)
+        val base = safeTarget / mealNames.size
+        var remainder = safeTarget - base * mealNames.size
         return mealNames.mapIndexed { index, name ->
             val extra = if (remainder > 0) { remainder--; 1 } else 0
             MealSlot(id = "meal-$index", name = name, plannedKcal = base + extra)

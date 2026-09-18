@@ -11,6 +11,23 @@ data class DayRecord(val date:String,val target:Int,val tolerance:Int,val consum
 
 class TitanStore(context:Context){
  private val p=context.getSharedPreferences("titan_beta",Context.MODE_PRIVATE)
+ private val schemaVersion=2
+ init{
+  val stored=p.getInt("schema_version",0)
+  if(stored<schemaVersion){
+   migrate(stored)
+   p.edit().putInt("schema_version",schemaVersion).apply()
+  }
+ }
+ private fun migrate(from:Int){
+  // Beta state is disposable when it cannot be proven structurally valid.
+  if(from<2){
+   val maintenance=p.getInt("maintenance",0)
+   val target=p.getInt("active_target",0)
+   if(maintenance<=0)p.edit().putBoolean("configured",false).remove("active_target").apply()
+   else if(target<=0)p.edit().remove("active_target").apply()
+  }
+ }
  fun load():TitanSavedState?{
   if(!p.getBoolean("configured",false))return null
   val maintenance=p.getInt("maintenance",0)
@@ -47,7 +64,15 @@ class TitanStore(context:Context){
  fun previousWeekHistory(today:LocalDate=LocalDate.now()):List<DayRecord> = weekHistory(today.minusWeeks(1))
  fun loadMeals(date:String=LocalDate.now().toString()):List<MealSlot>?{
   val raw=p.getString(dayKey(date)+"_meals",null)?:return null
-  return raw.split("~").mapNotNull{x->val a=x.split("|");if(a.size<5)null else runCatching{MealSlot(a[0],a[1],a[2].toInt(),a[3].toInt(),MealStatus.valueOf(a[4]),a.getOrNull(5)?.toIntOrNull()?:0,a.getOrNull(6)?.toIntOrNull()?:0,a.getOrNull(7)?.toIntOrNull()?:0)}.getOrNull()}
+  val decoded=raw.split("~").mapNotNull{x->
+   val a=x.split("|")
+   if(a.size<5)null else runCatching{
+    val planned=a[2].toInt().coerceAtLeast(0)
+    val consumed=a[3].toInt().coerceAtLeast(0)
+    MealSlot(a[0],a[1],planned,consumed,MealStatus.valueOf(a[4]),a.getOrNull(5)?.toIntOrNull()?.coerceAtLeast(0)?:0,a.getOrNull(6)?.toIntOrNull()?.coerceAtLeast(0)?:0,a.getOrNull(7)?.toIntOrNull()?.coerceAtLeast(0)?:0)
+   }.getOrNull()
+  }
+  return decoded.takeIf{it.isNotEmpty()}
  }
  fun weekHistory(today:LocalDate=LocalDate.now()):List<DayRecord>{
   val monday=today.minusDays((today.dayOfWeek.value-1).toLong())
@@ -82,5 +107,5 @@ class TitanStore(context:Context){
   val raw=p.getString("body_history","").orEmpty();if(raw.isBlank())return emptyList()
   return raw.split("~").mapNotNull{row->val a=row.split("|");if(a.size<2)null else runCatching{BodyEntry(a[0],a[1].toDouble(),a.getOrNull(2)?.toDoubleOrNull())}.getOrNull()}.sortedBy{it.date}
  }
- fun clear(){p.edit().clear().apply()}
+ fun clear(){p.edit().clear().putInt("schema_version",schemaVersion).apply()}
 }
