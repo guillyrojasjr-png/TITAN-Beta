@@ -27,10 +27,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable fun TitanApp() {
- var started by remember { mutableStateOf(false) }\n var calories by remember { mutableIntStateOf(0) }\n var meals by remember { mutableStateOf(listOf<Pair<String,Int>>()) }\n var showAdd by remember { mutableStateOf(false) }
+ var started by remember { mutableStateOf(false) }
+ var meals by remember { mutableStateOf(TitanEngine.distribute(2500, listOf("Desayuno","Comida","Merienda","Cena"))) }
+ var showAdd by remember { mutableStateOf(false) }
  MaterialTheme(colorScheme = lightColorScheme(primary = Ink, background = Cream, surface = Color.White)) {
   Surface(Modifier.fillMaxSize(), color = Cream) {
-   if (!started) Welcome { started = true } else if(showAdd) AddMeal(onAdd={n,k-> meals=meals+(n to k); calories+=k; showAdd=false}, onBack={showAdd=false}) else Today(calories, meals, { showAdd=true })
+   val plan=CaloriePlan(Strategy.MODERATE,2500,2750)
+   val consumed=meals.sumOf { it.consumedKcal }
+   if(!started) Welcome{started=true} else if(showAdd) AddMeal(onAdd={n,k-> val i=meals.indexOfFirst{it.status==MealStatus.PENDING}; meals=if(i>=0) meals.mapIndexed{x,m->if(x==i)m.copy(name=n,consumedKcal=k,status=MealStatus.CONFIRMED)else m}.let(TitanEngine::redistribute) else meals+MealSlot("extra-"+meals.size,n,0,k,MealStatus.CONFIRMED);showAdd=false},onBack={showAdd=false}) else Today(plan,TitanEngine.balance(plan,consumed),meals,{showAdd=true},{id->meals=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED,consumedKcal=0)else it}.let(TitanEngine::redistribute)})
   }
  }
 }
@@ -48,27 +52,33 @@ class MainActivity : ComponentActivity() {
  }
 }
 
-@Composable private fun Today(calories: Int, meals: List<Pair<String,Int>>, addMeal: () -> Unit) {
+@Composable private fun Today(plan:CaloriePlan,balance:DailyBalance,meals:List<MealSlot>,addMeal:()->Unit,skipMeal:(String)->Unit) {
  Column(Modifier.fillMaxSize().padding(24.dp)) {
   Spacer(Modifier.height(34.dp))
-  Text("HOY", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)
-  Text("Tu día en TITÁN", fontSize=30.sp, fontWeight=FontWeight.Bold)
+  Text("HOY",fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color.Gray)
+  Text("Tu día en TITÁN",fontSize=30.sp,fontWeight=FontWeight.Bold)
   Spacer(Modifier.height(24.dp))
-  Card(Modifier.fillMaxWidth(), shape=RoundedCornerShape(24.dp)) {
-   Column(Modifier.padding(22.dp)) {
-    Text("Objetivo diario", color=Color.Gray)
-    Text("2500 kcal", fontSize=34.sp, fontWeight=FontWeight.Bold)
-    Spacer(Modifier.height(12.dp))
-    LinearProgressIndicator(progress={(calories / 2500f).coerceIn(0f,1f)}, modifier=Modifier.fillMaxWidth().height(8.dp), color=Accent)
-    Spacer(Modifier.height(10.dp))
-    Text("$calories consumidas · ${(2500-calories).coerceAtLeast(0)} disponibles", fontSize=14.sp)
-   }
-  }
+  Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(22.dp)){
+   Text("Objetivo diario · MODERADO",color=Color.Gray)
+   Text("${balance.target} kcal",fontSize=34.sp,fontWeight=FontWeight.Bold)
+   Spacer(Modifier.height(12.dp))
+   LinearProgressIndicator(progress={(balance.consumed/balance.target.toFloat()).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth().height(8.dp),color=Accent)
+   Spacer(Modifier.height(10.dp))
+   Text("${balance.consumed} consumidas · ${balance.availableToTarget} disponibles",fontSize=14.sp)
+   Text("Margen TITÁN hasta ${balance.toleranceCeiling} kcal",fontSize=13.sp,color=Color.Gray)
+   if(balance.excessOverTolerance>0) Text("Recalibración: ${balance.excessOverTolerance} kcal sobre el margen",fontWeight=FontWeight.Bold)
+  }}
   Spacer(Modifier.height(18.dp))
-  Button(onClick=addMeal, modifier=Modifier.fillMaxWidth().height(54.dp), shape=RoundedCornerShape(16.dp)) { Text("＋ REGISTRAR COMIDA") }\n  Spacer(Modifier.height(18.dp))\n  Text("COMIDAS DE HOY", fontSize=13.sp, fontWeight=FontWeight.Bold, color=Color.Gray)\n  if(meals.isEmpty()) Text("Aún no hay comidas registradas.", color=Color.Gray) else meals.forEach { meal -> Text("✓ ${meal.first}  ·  ${meal.second} kcal", modifier=Modifier.padding(vertical=8.dp), fontSize=16.sp) }
+  Button(onClick=addMeal,modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp)){Text("＋ REGISTRAR COMIDA")}
+  Spacer(Modifier.height(18.dp))
+  Text("COMIDAS DE HOY",fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color.Gray)
+  meals.forEach{meal->Card(Modifier.fillMaxWidth().padding(vertical=4.dp),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(12.dp)){
+   Text(meal.name,fontWeight=FontWeight.SemiBold)
+   Text(when(meal.status){MealStatus.PENDING->"Pendiente · objetivo ${meal.plannedKcal} kcal";MealStatus.CONFIRMED->"Confirmada · ${meal.consumedKcal} kcal";MealStatus.SKIPPED->"Omitida"},color=Color.Gray)
+   if(meal.status==MealStatus.PENDING) TextButton(onClick={skipMeal(meal.id)}){Text("OMITIR")}
+  }}}
  }
 }
-
 
 @Composable private fun AddMeal(onAdd:(String,Int)->Unit,onBack:()->Unit) {
  var name by remember { mutableStateOf("") }
