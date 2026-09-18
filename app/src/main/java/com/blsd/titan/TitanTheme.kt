@@ -2,7 +2,10 @@ package com.blsd.titan
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.text.TextStyle\nimport androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 val TitanBackground = Color(0xFF080F14)
 val TitanSurface = Color(0xFF121922)
@@ -27,12 +30,11 @@ val TitanTypography = Typography(
 )
 
 private val TitanColors = darkColorScheme(
- primary=TitanPrimary, secondary=TitanSecondary, background=TitanBackground,
- surface=TitanSurface, surfaceVariant=TitanCard, onPrimary=TitanBackground,
- onBackground=TitanText, onSurface=TitanText, onSurfaceVariant=TitanTextSecondary,
- error=TitanAlert
+ primary=TitanPrimary,secondary=TitanSecondary,background=TitanBackground,
+ surface=TitanSurface,surfaceVariant=TitanCard,onPrimary=TitanBackground,
+ onBackground=TitanText,onSurface=TitanText,onSurfaceVariant=TitanTextSecondary,error=TitanAlert
 )
 
-@Composable fun TitanTheme(content:@Composable()->Unit) {
- MaterialTheme(colorScheme=TitanColors, typography=TitanTypography, content=content)
+@Composable fun TitanTheme(content: @Composable () -> Unit) {
+ MaterialTheme(colorScheme=TitanColors,typography=TitanTypography,content=content)
 }

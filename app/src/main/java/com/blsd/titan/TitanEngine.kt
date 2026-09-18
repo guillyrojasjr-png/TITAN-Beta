@@ -35,7 +35,10 @@ data class MealSlot(
     val name: String,
     val plannedKcal: Int,
     val consumedKcal: Int = 0,
-    val status: MealStatus = MealStatus.PENDING
+    val status: MealStatus = MealStatus.PENDING,
+    val proteinG: Int = 0,
+    val carbsG: Int = 0,
+    val fatG: Int = 0
 )
 
 data class DailyBalance(
@@ -46,7 +49,9 @@ data class DailyBalance(
     val excessOverTolerance: Int
 )
 
-data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class BodyTrend(val entries:Int,val weightChangeKg:Double,val waistChangeCm:Double?,val weeklyWeightRateKg:Double,val message:String)
+data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)
+
+data class BodyTrend(val entries:Int,val weightChangeKg:Double,val waistChangeCm:Double?,val weeklyWeightRateKg:Double,val message:String)
 data class WeeklyFeedback(val hunger:Int,val energy:Int,val recovery:Int,val performance:Int,val stress:Int,val satisfaction:Int)
 data class WeeklyReview(val days:Int,val averageKcal:Int,val targetAverage:Int,val adherencePercent:Int,val excessOverTolerance:Int,val completedMeals:Int,val skippedMeals:Int,val feedback:WeeklyFeedback)
 data class WeeklyAdjustment(val currentTarget:Int,val nextTarget:Int,val delta:Int,val reason:String)
