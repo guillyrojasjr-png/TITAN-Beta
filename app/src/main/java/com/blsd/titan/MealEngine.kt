@@ -16,6 +16,10 @@ data class Ingredient(
 data class Dish(val id:String,val name:String,val ingredients:List<Ingredient>){
  val kcal get()=ingredients.sumOf{it.kcal};val proteinG get()=ingredients.sumOf{it.proteinG};val carbsG get()=ingredients.sumOf{it.carbsG};val fatG get()=ingredients.sumOf{it.fatG}
 }
+data class FoodItem(val id:String,val name:String,val kcalPer100:Int,val proteinPer100:Double,val carbsPer100:Double,val fatPer100:Double)
+enum class SocialAmount(val factor:Double){ LITTLE(0.75), NORMAL(1.0), A_LOT(1.35) }
+data class SocialMeal(val id:String,val name:String,val baseKcal:Int)
+
 object MealEngine {
  private fun i(id:String,n:String,g:Int,k:Int,p:Double,c:Double,f:Double,group:IngredientGroup)=Ingredient(id,n,g,k,p,c,f,group)
  private val chicken=i("chicken","Pechuga de pollo",180,120,23.0,0.0,2.5,IngredientGroup.PROTEIN)
@@ -28,6 +32,18 @@ object MealEngine {
  private val pasta=i("pasta","Pasta cocida",220,131,5.0,25.0,1.1,IngredientGroup.CARB)
  private val veg=i("veg","Verduras variadas",180,45,2.0,8.0,0.5,IngredientGroup.VEGETABLE)
  private val oil=i("oil","Aceite de oliva",10,884,0.0,0.0,100.0,IngredientGroup.FAT)
+ val foods=listOf(
+  FoodItem("chicken","Pechuga de pollo",120,23.0,0.0,2.5),FoodItem("turkey","Pavo",115,24.0,0.0,1.5),
+  FoodItem("tuna","Atún al natural",116,26.0,0.0,1.0),FoodItem("beef","Ternera magra",155,26.0,0.0,5.0),
+  FoodItem("salmon","Salmón",208,20.0,0.0,13.0),FoodItem("rice","Arroz cocido",130,2.7,28.0,0.3),
+  FoodItem("potato","Patata asada",93,2.5,21.0,0.1),FoodItem("pasta","Pasta cocida",131,5.0,25.0,1.1),
+  FoodItem("veg","Verduras variadas",45,2.0,8.0,0.5),FoodItem("oil","Aceite de oliva",884,0.0,0.0,100.0)
+ )
+ val socialMeals=listOf(SocialMeal("pizza","Pizza",850),SocialMeal("burger","Hamburguesa",900),SocialMeal("sushi","Sushi",700),SocialMeal("bbq","Barbacoa",950),SocialMeal("fried-chicken","Pollo frito",900))
+ fun searchFoods(query:String)=foods.filter{query.isBlank()||it.name.contains(query,true)}
+ fun foodKcal(food:FoodItem,grams:Int)=(food.kcalPer100*grams.coerceAtLeast(1)/100.0).roundToInt()
+ fun socialKcal(meal:SocialMeal,amount:SocialAmount)=(meal.baseKcal*amount.factor).roundToInt()
+
  private val dishes=listOf(
   Dish("chicken-rice","Pollo con arroz y verduras",listOf(chicken,rice,veg,oil)),
   Dish("salmon-potato","Salmón con patata y ensalada",listOf(salmon,potato,veg)),
