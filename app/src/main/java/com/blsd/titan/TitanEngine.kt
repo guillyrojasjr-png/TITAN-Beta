@@ -46,7 +46,11 @@ data class DailyBalance(
     val excessOverTolerance: Int
 )
 
-data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class WeeklyRecalibration(
+data class DayCloseResult(val consumed:Int,val target:Int,val toleranceCeiling:Int,val excessToRecalibrate:Int,val completedMeals:Int,val skippedMeals:Int)\n\ndata class WeeklyFeedback(val hunger:Int,val energy:Int,val recovery:Int,val performance:Int,val stress:Int,val satisfaction:Int)
+data class WeeklyReview(val days:Int,val averageKcal:Int,val targetAverage:Int,val adherencePercent:Int,val excessOverTolerance:Int,val completedMeals:Int,val skippedMeals:Int,val feedback:WeeklyFeedback)
+data class WeeklyAdjustment(val currentTarget:Int,val nextTarget:Int,val delta:Int,val reason:String)
+
+data class WeeklyRecalibration(
     val excessKcal: Int,
     val remainingDays: Int,
     val adjustmentPerDay: Int
@@ -123,6 +127,27 @@ object TitanEngine {
     fun closeDay(plan:CaloriePlan,meals:List<MealSlot>):DayCloseResult {
         val b=balance(plan,meals.sumOf{it.consumedKcal})
         return DayCloseResult(b.consumed,b.target,b.toleranceCeiling,b.excessOverTolerance,meals.count{it.status==MealStatus.CONFIRMED},meals.count{it.status==MealStatus.SKIPPED})
+    }
+
+    fun weeklyReview(days:List<DayRecord>,feedback:WeeklyFeedback):WeeklyReview{
+        if(days.isEmpty())return WeeklyReview(0,0,0,0,0,0,0,feedback)
+        val avg=days.map{it.consumed}.average().roundToInt()
+        val target=days.map{it.target}.average().roundToInt()
+        val adherence=(100.0-(kotlin.math.abs(avg-target)*100.0/target.coerceAtLeast(1))).roundToInt().coerceIn(0,100)
+        return WeeklyReview(days.size,avg,target,adherence,days.sumOf{it.excess},days.sumOf{it.confirmed},days.sumOf{it.skipped},feedback)
+    }
+    fun weeklyAdjustment(review:WeeklyReview,currentTarget:Int):WeeklyAdjustment{
+        if(review.days<4)return WeeklyAdjustment(currentTarget,currentTarget,0,"Aún faltan datos para ajustar la semana.")
+        val recoveryLoad=(review.feedback.hunger+review.feedback.stress+(6-review.feedback.energy)+(6-review.feedback.recovery)+(6-review.feedback.performance)+(6-review.feedback.satisfaction))/6.0
+        val delta=when{
+            recoveryLoad>=4.2 -> 100
+            review.adherencePercent<75 -> 0
+            review.excessOverTolerance>currentTarget/2 -> 0
+            else -> 0
+        }
+        val next=(currentTarget+delta).coerceAtLeast(1200)
+        val reason=when{delta>0->"Se suaviza ligeramente el objetivo por hambre/estrés/recuperación.";review.adherencePercent<75->"Se mantiene el objetivo: primero necesitamos una semana más consistente.";else->"Se mantiene el objetivo: los datos no justifican un cambio todavía."}
+        return WeeklyAdjustment(currentTarget,next,delta,reason)
     }
 
     fun weeklyRecalibration(excessKcal: Int, remainingDays: Int): WeeklyRecalibration {
