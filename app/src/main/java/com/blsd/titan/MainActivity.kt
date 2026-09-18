@@ -130,9 +130,10 @@ private fun nextScreen(s:Screen)=when(s){Screen.TODAY->Screen.MEALS;Screen.MEALS
 @Composable private fun TitanArrows(s:Screen,back:()->Unit,next:()->Unit){Row(Modifier.fillMaxWidth().padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween){Text("‹",fontSize=38.sp,color=TitanText,modifier=Modifier.clickable{back()}.padding(8.dp));val n=nextScreen(s);Text("›",fontSize=38.sp,color=if(n!=s)TitanPrimary else TitanDivider,modifier=Modifier.clickable(enabled=n!=s){next()}.padding(8.dp))}}
 @Composable private fun TitanAtmosphere(){ /* Master UI uses clean graphite surfaces; photographic atmosphere is screen-specific. */ }
 @Composable private fun TitanMark(){
- Column(Modifier.width(154.dp).height(100.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
-  Text("TITÁN",fontSize=34.sp,fontWeight=FontWeight.Black,letterSpacing=3.sp,color=TitanText)
-  Text("RECOMPOSITION",fontSize=9.sp,fontWeight=FontWeight.Bold,letterSpacing=2.sp,color=TitanPrimary)
+ Column(Modifier.width(154.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
+  Image(painterResource(R.drawable.titan_logo),contentDescription="TITÁN",modifier=Modifier.size(76.dp))
+  Text("T I T Á N",fontSize=24.sp,fontWeight=FontWeight.Bold,letterSpacing=4.sp,color=TitanText)
+  Text("DATOS QUE TE LLEVAN MÁS LEJOS",fontSize=7.sp,fontWeight=FontWeight.SemiBold,letterSpacing=1.sp,color=TitanTextSecondary)
  }
 }
 @Composable private fun FoodVisual(modifier:Modifier=Modifier){Canvas(modifier.clip(RoundedCornerShape(18.dp)).background(Brush.linearGradient(listOf(Color(0xFF25323A),Color(0xFF0D151B))))){val w=size.width;val h=size.height;drawCircle(Color(0xFF11191E),w*.36f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFFD9C49A),w*.26f,Offset(w*.50f,h*.52f));drawCircle(Color(0xFF4CAF7A),w*.11f,Offset(w*.39f,h*.43f));drawCircle(Color(0xFFE6B85C),w*.10f,Offset(w*.60f,h*.43f));drawCircle(Color(0xFFB66D52),w*.11f,Offset(w*.48f,h*.62f));drawCircle(Color(0xFFF1E3C6),w*.08f,Offset(w*.64f,h*.61f));drawCircle(TitanPrimary.copy(alpha=.16f),w*.55f,Offset(w*.5f,h*.5f))}}
