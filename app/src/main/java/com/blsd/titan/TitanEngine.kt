@@ -35,7 +35,10 @@ data class MealSlot(
     val name: String,
     val plannedKcal: Int,
     val consumedKcal: Int = 0,
-    val status: MealStatus = MealStatus.PENDING
+    val status: MealStatus = MealStatus.PENDING,
+    val proteinG: Int = 0,
+    val carbsG: Int = 0,
+    val fatG: Int = 0
 )
 
 data class DailyBalance(
