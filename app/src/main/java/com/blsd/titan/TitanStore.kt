@@ -12,13 +12,13 @@ class TitanStore(context:Context){
  fun save(profile:UserProfile,maintenance:Int,strategy:Strategy){p.edit().putBoolean("configured",true).putString("sex",profile.sex.name).putInt("age",profile.age).putFloat("height",profile.heightCm.toFloat()).putFloat("weight",profile.weightKg.toFloat()).putInt("maintenance",maintenance).putString("strategy",strategy.name).apply()}
  private fun dayKey(date:String)= "day_"+date
  fun saveDay(meals:List<MealSlot>,plan:CaloriePlan,date:String=LocalDate.now().toString(),closed:Boolean=false){
-  val encoded=meals.joinToString("~"){listOf(it.id,it.name.replace("|"," "),it.plannedKcal,it.consumedKcal,it.status.name).joinToString("|")}
+  val encoded=meals.joinToString("~"){listOf(it.id,it.name.replace("|"," "),it.plannedKcal,it.consumedKcal,it.status.name,it.proteinG,it.carbsG,it.fatG).joinToString("|")}
   val r=TitanEngine.closeDay(plan,meals)
   p.edit().putString(dayKey(date)+"_meals",encoded).putInt(dayKey(date)+"_target",plan.target).putInt(dayKey(date)+"_tolerance",plan.toleranceCeiling).putInt(dayKey(date)+"_consumed",r.consumed).putInt(dayKey(date)+"_excess",r.excessToRecalibrate).putInt(dayKey(date)+"_confirmed",r.completedMeals).putInt(dayKey(date)+"_skipped",r.skippedMeals).putBoolean(dayKey(date)+"_closed",closed).apply()
  }
  fun loadMeals(date:String=LocalDate.now().toString()):List<MealSlot>?{
   val raw=p.getString(dayKey(date)+"_meals",null)?:return null
-  return raw.split("~").mapNotNull{x->val a=x.split("|");if(a.size<5)null else runCatching{MealSlot(a[0],a[1],a[2].toInt(),a[3].toInt(),MealStatus.valueOf(a[4]))}.getOrNull()}
+  return raw.split("~").mapNotNull{x->val a=x.split("|");if(a.size<5)null else runCatching{MealSlot(a[0],a[1],a[2].toInt(),a[3].toInt(),MealStatus.valueOf(a[4]),a.getOrNull(5)?.toIntOrNull()?:0,a.getOrNull(6)?.toIntOrNull()?:0,a.getOrNull(7)?.toIntOrNull()?:0)}.getOrNull()}
  }
  fun weekHistory(today:LocalDate=LocalDate.now()):List<DayRecord>{
   val monday=today.minusDays((today.dayOfWeek.value-1).toLong())
