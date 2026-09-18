@@ -32,7 +32,7 @@ class TitanStore(context:Context){
   return SessionDay(today,fresh,true)
  }
  fun remainingDaysInWeek(date:LocalDate=LocalDate.now())=(7-date.dayOfWeek.value).coerceAtLeast(0)
- fun previousWeekHistory(today:LocalDate=LocalDate.now()):List<DayRecord>=weekHistory(today.minusWeeks(1))
+ fun previousWeekHistory(today:LocalDate=LocalDate.now()):List<DayRecord> = weekHistory(today.minusWeeks(1))
  fun loadMeals(date:String=LocalDate.now().toString()):List<MealSlot>?{
   val raw=p.getString(dayKey(date)+"_meals",null)?:return null
   return raw.split("~").mapNotNull{x->val a=x.split("|");if(a.size<5)null else runCatching{MealSlot(a[0],a[1],a[2].toInt(),a[3].toInt(),MealStatus.valueOf(a[4]),a.getOrNull(5)?.toIntOrNull()?:0,a.getOrNull(6)?.toIntOrNull()?:0,a.getOrNull(7)?.toIntOrNull()?:0)}.getOrNull()}
