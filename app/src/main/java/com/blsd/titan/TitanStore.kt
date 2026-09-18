@@ -11,7 +11,19 @@ data class DayRecord(val date:String,val target:Int,val tolerance:Int,val consum
 
 class TitanStore(context:Context){
  private val p=context.getSharedPreferences("titan_beta",Context.MODE_PRIVATE)
- fun load():TitanSavedState?{if(!p.getBoolean("configured",false))return null;return TitanSavedState(true,runCatching{Sex.valueOf(p.getString("sex","MALE")!!)}.getOrDefault(Sex.MALE),p.getInt("age",30),p.getFloat("height",170f).toDouble(),p.getFloat("weight",70f).toDouble(),p.getInt("maintenance",0),runCatching{Strategy.valueOf(p.getString("strategy","MODERATE")!!)}.getOrDefault(Strategy.MODERATE))}
+ fun load():TitanSavedState?{
+  if(!p.getBoolean("configured",false))return null
+  val maintenance=p.getInt("maintenance",0)
+  val age=p.getInt("age",30)
+  val height=p.getFloat("height",170f).toDouble()
+  val weight=p.getFloat("weight",70f).toDouble()
+  // Beta migrations / corrupt or incomplete legacy state: restart onboarding safely.
+  if(maintenance<=0 || age<=0 || height<=0.0 || weight<=0.0){
+   p.edit().putBoolean("configured",false).remove("active_target").apply()
+   return null
+  }
+  return TitanSavedState(true,runCatching{Sex.valueOf(p.getString("sex","MALE")!!)}.getOrDefault(Sex.MALE),age,height,weight,maintenance,runCatching{Strategy.valueOf(p.getString("strategy","MODERATE")!!)}.getOrDefault(Strategy.MODERATE))
+ }
  fun save(profile:UserProfile,maintenance:Int,strategy:Strategy){p.edit().putBoolean("configured",true).putString("sex",profile.sex.name).putInt("age",profile.age).putFloat("height",profile.heightCm.toFloat()).putFloat("weight",profile.weightKg.toFloat()).putInt("maintenance",maintenance).putString("strategy",strategy.name).apply()}
  private fun dayKey(date:String)= "day_"+date
  fun saveDay(meals:List<MealSlot>,plan:CaloriePlan,date:String=LocalDate.now().toString(),closed:Boolean=false){
