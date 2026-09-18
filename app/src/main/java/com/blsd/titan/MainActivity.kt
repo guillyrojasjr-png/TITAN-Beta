@@ -48,14 +48,14 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
  var selectedMealId by remember{mutableStateOf<String?>(null)};var proposedDish by remember{mutableStateOf<Dish?>(null)};var selectedIngredient by remember{mutableStateOf(0)}
  var meals by remember{mutableStateOf(saved?.let{
   runCatching{
-   val base=TitanEngine.plans(it.maintenance).first{p->p.strategy==it.strategy}
+   val base=TitanEngine.plans(it.maintenance).firstOrNull{p->p.strategy==it.strategy} ?: TitanEngine.plans(it.maintenance).first()
    store.ensureToday(base.copy(target=store.activeTarget(base.target))).meals
   }.getOrElse{
    store.clear()
    emptyList()
   }
  }?:emptyList())}
- fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;val base=TitanEngine.plans(m).first{it.strategy==strategy};val target=store.activeTarget(base.target);return base.copy(target=target)}
+ fun currentPlan():CaloriePlan{val m=estimate?.maintenance?:1;val plans=TitanEngine.plans(m);val base=plans.firstOrNull{it.strategy==strategy}?:plans.first();val target=store.activeTarget(base.target);return base.copy(target=target)}
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
   Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
   AnimatedContent(targetState=screen,transitionSpec={fadeIn(tween(260))+slideInHorizontally(tween(260)){it/10} togetherWith fadeOut(tween(180))},label="screen"){shownScreen->
@@ -71,17 +71,17 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
     val qe=QuestionnaireEngine.energy(w,ActivityQuestionnaire(standing.toDoubleOrNull()?:0.0,moving.toDoubleOrNull()?:0.0,load.toDoubleOrNull()?:0.0,workIntensity,breaks.toDoubleOrNull()?:0.0,variableDay),TrainingQuestionnaire(sessions.toIntOrNull()?:0,minutes.toIntOrNull()?:0,trainingIntensity))
     estimate=TitanEngine.estimateEnergy(UserProfile(sex,age.toIntOrNull()?:30,height.toDoubleOrNull()?:170.0,w,1.2,qe.workDailyKcal,qe.trainingDailyKcal));screen=Screen.MAINTENANCE
    }
-   Screen.MAINTENANCE->Maintenance(estimate!!){screen=Screen.STRATEGY}
-   Screen.STRATEGY->Strategies(estimate!!.maintenance,strategy,{strategy=it}){
+   Screen.MAINTENANCE->estimate?.let{Maintenance(it){screen=Screen.STRATEGY}}?:run{screen=Screen.TRAINING}
+   Screen.STRATEGY->estimate?.let{safeEstimate->Strategies(safeEstimate.maintenance,strategy,{strategy=it}){
     val profile=UserProfile(sex,age.toIntOrNull()?:30,height.toDoubleOrNull()?:170.0,weight.toDoubleOrNull()?:70.0)
-    store.save(profile,estimate!!.maintenance,strategy)
-    meals=TitanEngine.distribute(currentPlan().target,listOf("Desayuno","Comida","Merienda","Cena"));store.saveDay(meals,currentPlan());screen=Screen.TODAY}
+    store.save(profile,safeEstimate.maintenance,strategy)
+    meals=TitanEngine.distribute(currentPlan().target,listOf("Desayuno","Comida","Merienda","Cena"));store.saveDay(meals,currentPlan());screen=Screen.TODAY}}?:run{screen=Screen.TRAINING}
    Screen.TODAY->{val p=currentPlan();Today(p,TitanEngine.balance(p,meals.sumOf{it.consumedKcal}),MealEngine.macroBalance(MealEngine.macroTarget(weight.toDoubleOrNull()?:70.0,p.target),meals),meals,{screen=Screen.MEALS},{id->val updated=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,p)},{screen=Screen.DAY_CLOSE},{screen=Screen.WEEK},{screen=Screen.ADD},{screen=Screen.SOCIAL})}
    Screen.MEALS->MealList(meals,{m->selectedMealId=m.id;proposedDish=MealEngine.propose(m.plannedKcal);screen=Screen.DISH},{id->val updated=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan())},{screen=Screen.TODAY})
-   Screen.DISH->DishProposal(proposedDish!!,{screen=Screen.ALTERNATIVES},{index->selectedIngredient=index;screen=Screen.INGREDIENT},{
-    val id=selectedMealId;val d=proposedDish!!;val updated=meals.map{if(it.id==id)it.copy(name=d.name,consumedKcal=d.kcal,status=MealStatus.CONFIRMED,proteinG=d.proteinG,carbsG=d.carbsG,fatG=d.fatG)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan());screen=Screen.MEALS
-   },{screen=Screen.MEALS})
-   Screen.ALTERNATIVES->Alternatives(meals.first{it.id==selectedMealId}.plannedKcal,proposedDish!!,{d->proposedDish=d;screen=Screen.DISH},{screen=Screen.DISH})
+   Screen.DISH->proposedDish?.let{safeDish->DishProposal(safeDish,{screen=Screen.ALTERNATIVES},{index->selectedIngredient=index;screen=Screen.INGREDIENT},{
+    val id=selectedMealId;val d=safeDish;val updated=meals.map{if(it.id==id)it.copy(name=d.name,consumedKcal=d.kcal,status=MealStatus.CONFIRMED,proteinG=d.proteinG,carbsG=d.carbsG,fatG=d.fatG)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan());screen=Screen.MEALS
+   },{screen=Screen.MEALS})}?:run{screen=Screen.MEALS}
+   Screen.ALTERNATIVES->{val meal=meals.firstOrNull{it.id==selectedMealId};val dish=proposedDish;if(meal!=null&&dish!=null)Alternatives(meal.plannedKcal,dish,{d->proposedDish=d;screen=Screen.DISH},{screen=Screen.DISH}) else screen=Screen.MEALS}
    Screen.INGREDIENT->IngredientEditor(proposedDish!!,selectedIngredient,{g->proposedDish=MealEngine.resizeIngredient(proposedDish!!,selectedIngredient,g)},{replacement->proposedDish=MealEngine.replaceIngredient(proposedDish!!,selectedIngredient,replacement);screen=Screen.DISH},{screen=Screen.DISH})
    Screen.DAY_CLOSE->DayClose(TitanEngine.closeDay(currentPlan(),meals),store.remainingDaysInWeek()){store.saveDay(meals,currentPlan(),closed=true);screen=Screen.WEEK}
    Screen.WEEK->WeekHistory(store.weekHistory(),{screen=Screen.WEEK_REVIEW},{screen=Screen.BODY}){screen=Screen.TODAY}
