@@ -39,7 +39,7 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
  val context=LocalContext.current
  val store=remember{TitanStore(context)}
  val saved=remember{runCatching{store.load()}.getOrNull()}
- var screen by remember{mutableStateOf(if(saved!=null)Screen.TODAY else Screen.WELCOME)}
+ var screen by remember{mutableStateOf(Screen.WELCOME)}
  var sex by remember{mutableStateOf(saved?.sex?:Sex.MALE)}
  var age by remember{mutableStateOf((saved?.age?:39).toString())};var height by remember{mutableStateOf((saved?.heightCm?:170.0).toInt().toString())};var weight by remember{mutableStateOf((saved?.weightKg?:93.0).toInt().toString())}
  var standing by remember{mutableStateOf("7")};var moving by remember{mutableStateOf("5")};var load by remember{mutableStateOf("2")};var breaks by remember{mutableStateOf("1")};var workIntensity by remember{mutableStateOf(WorkIntensity.MODERATE)};var variableDay by remember{mutableStateOf(true)}
@@ -61,7 +61,7 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
   AnimatedContent(targetState=screen,transitionSpec={fadeIn(tween(260))+slideInHorizontally(tween(260)){it/10} togetherWith fadeOut(tween(180))},label="screen"){shownScreen->
   Box(Modifier.fillMaxSize()){TitanAtmosphere();
   when(shownScreen){
-   Screen.WELCOME->Welcome{screen=Screen.OBJECTIVE}
+   Screen.WELCOME->Welcome{screen=if(saved!=null)Screen.TODAY else Screen.OBJECTIVE}
    Screen.OBJECTIVE->Objective{screen=Screen.PROFILE}
    Screen.PROFILE->Profile(age,{age=it},height,{height=it},weight,{weight=it},sex,{sex=it}){screen=Screen.WORK}
    Screen.WORK->Work(standing,{standing=it},moving,{moving=it},load,{load=it}){screen=Screen.WORK_DETAIL}
