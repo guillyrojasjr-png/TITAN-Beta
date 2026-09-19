@@ -130,7 +130,7 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
   (cal.clone() as java.util.Calendar).apply{add(java.util.Calendar.DAY_OF_MONTH,mondayOffset+i)}
  }
  Scaffold(containerColor=Color.Transparent,bottomBar={BottomNav({},add,week,{})}){pad->
-  Column(Modifier.padding(pad).padding(horizontal=20.dp),horizontalAlignment=Alignment.CenterHorizontally){
+  Column(Modifier.padding(pad).padding(horizontal=20.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally){
    Spacer(Modifier.height(52.dp))
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
     TitanMark()
@@ -154,10 +154,10 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
    Spacer(Modifier.height(12.dp))
    Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){CalorieRing(b,plan)}
    Spacer(Modifier.height(10.dp))
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
-    MacroBar("PROTEÍNA",macros.proteinG,macros.target.proteinG)
-    MacroBar("CARBOS",macros.carbsG,macros.target.carbsG)
-    MacroBar("GRASAS",macros.fatG,macros.target.fatG)
+   Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(8.dp)){
+    Row(Modifier.fillMaxWidth()){ MacroBar("PROTEÍNA",macros.proteinG,macros.target.proteinG) }
+    Row(Modifier.fillMaxWidth()){ MacroBar("CARBOS",macros.carbsG,macros.target.carbsG) }
+    Row(Modifier.fillMaxWidth()){ MacroBar("GRASAS",macros.fatG,macros.target.fatG) }
    }
    Spacer(Modifier.height(14.dp))
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
