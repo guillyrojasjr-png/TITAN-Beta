@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -130,7 +132,7 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
   (cal.clone() as java.util.Calendar).apply{add(java.util.Calendar.DAY_OF_MONTH,mondayOffset+i)}
  }
  Scaffold(containerColor=Color.Transparent,bottomBar={BottomNav({},add,week,{})}){pad->
-  Column(Modifier.padding(pad).padding(horizontal=20.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally){
+  Column(Modifier.padding(pad).padding(horizontal=20.dp).verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally){
    Spacer(Modifier.height(52.dp))
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
     TitanMark()
