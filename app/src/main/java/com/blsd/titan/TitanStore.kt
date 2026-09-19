@@ -3,7 +3,7 @@ package com.blsd.titan
 import android.content.Context
 import java.time.LocalDate
 
-data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy)
+data class TitanSavedState(val configured:Boolean,val sex:Sex,val age:Int,val heightCm:Double,val weightKg:Double,val maintenance:Int,val strategy:Strategy,val mealCount:Int)
 data class SessionDay(val date:String,val meals:List<MealSlot>,val createdNew:Boolean)
 data class BodyEntry(val date:String,val weightKg:Double,val waistCm:Double?)
 data class TargetChange(val date:String,val previousTarget:Int,val newTarget:Int,val reason:String)
@@ -22,25 +22,26 @@ class TitanStore(context:Context){
    p.edit().putBoolean("configured",false).remove("active_target").apply()
    return null
   }
-  return TitanSavedState(true,runCatching{Sex.valueOf(p.getString("sex","MALE")!!)}.getOrDefault(Sex.MALE),age,height,weight,maintenance,runCatching{Strategy.valueOf(p.getString("strategy","MODERATE")!!)}.getOrDefault(Strategy.MODERATE))
+  return TitanSavedState(true,runCatching{Sex.valueOf(p.getString("sex","MALE")!!)}.getOrDefault(Sex.MALE),age,height,weight,maintenance,runCatching{Strategy.valueOf(p.getString("strategy","MODERATE")!!)}.getOrDefault(Strategy.MODERATE),p.getInt("meal_count",4).coerceIn(2,6))
  }
- fun save(profile:UserProfile,maintenance:Int,strategy:Strategy){p.edit().putBoolean("configured",true).putString("sex",profile.sex.name).putInt("age",profile.age).putFloat("height",profile.heightCm.toFloat()).putFloat("weight",profile.weightKg.toFloat()).putInt("maintenance",maintenance).putString("strategy",strategy.name).apply()}
+ fun save(profile:UserProfile,maintenance:Int,strategy:Strategy,mealCount:Int=4){p.edit().putBoolean("configured",true).putString("sex",profile.sex.name).putInt("age",profile.age).putFloat("height",profile.heightCm.toFloat()).putFloat("weight",profile.weightKg.toFloat()).putInt("maintenance",maintenance).putString("strategy",strategy.name).putInt("meal_count",mealCount.coerceIn(2,6)).apply()}
  private fun dayKey(date:String)= "day_"+date
  fun saveDay(meals:List<MealSlot>,plan:CaloriePlan,date:String=LocalDate.now().toString(),closed:Boolean=false){
   val encoded=meals.joinToString("~"){listOf(it.id,it.name.replace("|"," "),it.plannedKcal,it.consumedKcal,it.status.name,it.proteinG,it.carbsG,it.fatG).joinToString("|")}
   val r=TitanEngine.closeDay(plan,meals)
   p.edit().putString(dayKey(date)+"_meals",encoded).putInt(dayKey(date)+"_target",plan.target).putInt(dayKey(date)+"_tolerance",plan.toleranceCeiling).putInt(dayKey(date)+"_consumed",r.consumed).putInt(dayKey(date)+"_excess",r.excessToRecalibrate).putInt(dayKey(date)+"_confirmed",r.completedMeals).putInt(dayKey(date)+"_skipped",r.skippedMeals).putBoolean(dayKey(date)+"_closed",closed).apply()
  }
+ private fun mealNames(count:Int):List<String> = when(count.coerceIn(2,6)){2->listOf("Comida","Cena");3->listOf("Desayuno","Comida","Cena");4->listOf("Desayuno","Comida","Merienda","Cena");5->listOf("Desayuno","Media mañana","Comida","Merienda","Cena");else->listOf("Desayuno","Media mañana","Comida","Merienda","Cena","Recena")}
  fun ensureToday(plan:CaloriePlan,date:LocalDate=LocalDate.now()):SessionDay{
   val key="active_date";val previous=p.getString(key,null);val today=date.toString()
   if(previous!=today){
-   val fresh=TitanEngine.distribute(plan.target,listOf("Desayuno","Comida","Merienda","Cena"))
+   val fresh=TitanEngine.distribute(plan.target,mealNames(p.getInt("meal_count",4)))
    p.edit().putString(key,today).apply();saveDay(fresh,plan,today,false)
    return SessionDay(today,fresh,true)
   }
   val loaded=loadMeals(today)
   if(loaded!=null)return SessionDay(today,loaded,false)
-  val fresh=TitanEngine.distribute(plan.target,listOf("Desayuno","Comida","Merienda","Cena"));saveDay(fresh,plan,today,false)
+  val fresh=TitanEngine.distribute(plan.target,mealNames(p.getInt("meal_count",4)));saveDay(fresh,plan,today,false)
   return SessionDay(today,fresh,true)
  }
  fun remainingDaysInWeek(date:LocalDate=LocalDate.now())=(7-date.dayOfWeek.value).coerceAtLeast(0)
