@@ -59,6 +59,23 @@ object MealEngine {
  fun foodKcal(food:FoodItem,grams:Int)=(food.kcalPer100*grams.coerceAtLeast(1)/100.0).roundToInt()
  fun socialKcal(meal:SocialMeal,amount:SocialAmount)=(meal.baseKcal*amount.factor).roundToInt()
 
+ private val oats=i("oats","Avena",60,389,16.9,66.3,6.9,IngredientGroup.CARB)
+ private val yogurt=i("yogurt","Yogur griego",180,73,9.0,4.0,2.0,IngredientGroup.PROTEIN)
+ private val banana=i("banana","Plátano",100,89,1.1,23.0,0.3,IngredientGroup.CARB)
+ private val berries=i("berries","Frutos rojos",100,50,1.0,12.0,0.4,IngredientGroup.CARB)
+ private val eggs=i("eggs","Huevo",120,143,13.0,1.0,10.0,IngredientGroup.PROTEIN)
+ private val bread=i("bread","Pan integral",90,247,13.0,41.0,4.2,IngredientGroup.CARB)
+ private val avocado=i("avocado","Aguacate",70,160,2.0,8.5,14.7,IngredientGroup.FAT)
+ private val cheese=i("cheese","Queso",40,280,25.0,2.0,20.0,IngredientGroup.PROTEIN)
+ private val muesli=i("muesli","Muesli",55,370,10.0,64.0,7.0,IngredientGroup.CARB)
+ private val milk=i("milk","Leche",250,47,3.4,4.9,1.6,IngredientGroup.PROTEIN)
+ private val breakfastDishes=listOf(
+  Dish("creamy-oat-bowl","Creamy Oat Bowl",listOf(oats,yogurt,banana,berries)),
+  Dish("egg-avocado-toast","Egg & Avocado Toast",listOf(bread,eggs,avocado)),
+  Dish("turkey-melt-toast","Turkey Melt Toast",listOf(bread,turkey.withGrams(90),cheese)),
+  Dish("fruit-crunch-bowl","Fruit & Crunch Bowl",listOf(yogurt,muesli,berries)),
+  Dish("banana-protein-pancakes","Banana Protein Pancakes",listOf(oats.withGrams(55),banana,eggs))
+ )
  private val dishes=listOf(
   Dish("chicken-rice","Pollo con arroz y verduras",listOf(chicken,rice,veg,oil)),
   Dish("salmon-potato","Salmón con patata y ensalada",listOf(salmon,potato,veg)),
@@ -66,6 +83,12 @@ object MealEngine {
   Dish("beef-rice","Ternera magra con arroz",listOf(beef,rice,veg)),
   Dish("tuna-potato","Atún con patata y verduras",listOf(tuna,potato,veg,oil))
  )
+ fun isBreakfast(mealName:String)=mealName.equals("Desayuno",true)
+ fun proposeForMeal(mealName:String,targetKcal:Int)=alternativesForMeal(mealName,targetKcal,limit=1).first()
+ fun alternativesForMeal(mealName:String,targetKcal:Int,exclude:Set<String> = emptySet(),limit:Int=4):List<Dish>{
+  val source=if(isBreakfast(mealName)) breakfastDishes else dishes
+  return source.filterNot{it.id in exclude}.sortedBy{kotlin.math.abs(it.kcal-targetKcal)}.take(limit)
+ }
  fun propose(targetKcal:Int,macro:MacroTarget?=null,exclude:Set<String> = emptySet())=alternatives(targetKcal,macro,exclude,1).first()
  fun alternatives(targetKcal:Int,macro:MacroTarget?=null,exclude:Set<String> = emptySet(),limit:Int=4)=dishes.filterNot{it.id in exclude}.sortedBy{d->
   kotlin.math.abs(d.kcal-targetKcal)+(macro?.let{kotlin.math.abs(d.proteinG-it.proteinG)*2.0+kotlin.math.abs(d.carbsG-it.carbsG)*0.5}?:0.0)
