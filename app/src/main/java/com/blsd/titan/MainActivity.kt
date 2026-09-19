@@ -117,13 +117,49 @@ private fun nextScreen(s:Screen)=when(s){Screen.TODAY->Screen.MEALS;Screen.MEALS
 @Composable private fun Work(a:String,sa:(String)->Unit,b:String,sb:(String)->Unit,c:String,sc:(String)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 4 de 8","Tu actividad diaria");Text("Queremos medir tu día real, no asignarte una etiqueta genérica.",color=TitanTextSecondary);Field("Horas de pie",a,sa);Field("Horas en movimiento",b,sb);Field("Horas con cargas / trabajo físico",c,sc);Spacer(Modifier.weight(1f));PrimaryButton("Continuar",next)}}
 @Composable private fun WorkDetail(breaks:String,setBreaks:(String)->Unit,intensity:WorkIntensity,setIntensity:(WorkIntensity)->Unit,variable:Boolean,setVariable:(Boolean)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 5 de 8","Cómo es tu jornada");Field("Horas totales de pausas",breaks,setBreaks);Text("Intensidad habitual",color=TitanTextSecondary);Row{WorkIntensity.entries.forEach{v->FilterChip(intensity==v,{setIntensity(v)},{Text(when(v){WorkIntensity.LOW->"Baja";WorkIntensity.MODERATE->"Media";WorkIntensity.HIGH->"Alta"})});Spacer(Modifier.width(6.dp))}};Spacer(Modifier.height(12.dp));Text("¿Tu actividad cambia mucho de un día a otro?",color=TitanTextSecondary);Row{FilterChip(variable,{setVariable(true)},{Text("Sí")});Spacer(Modifier.width(8.dp));FilterChip(!variable,{setVariable(false)},{Text("No")})};Spacer(Modifier.weight(1f));PrimaryButton("Continuar",next)}}
 @Composable private fun Training(a:String,sa:(String)->Unit,b:String,sb:(String)->Unit,intensity:TrainingIntensity,setIntensity:(TrainingIntensity)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 6 de 8","Tu entrenamiento");Text("Frecuencia, duración e intensidad alimentan la estimación inicial.",color=TitanTextSecondary);Field("Sesiones por semana",a,sa);Field("Minutos por sesión",b,sb);Text("Intensidad habitual",color=TitanTextSecondary);Row{TrainingIntensity.entries.forEach{v->FilterChip(intensity==v,{setIntensity(v)},{Text(when(v){TrainingIntensity.LIGHT->"Suave";TrainingIntensity.MODERATE->"Media";TrainingIntensity.HIGH->"Alta"})});Spacer(Modifier.width(6.dp))}};Spacer(Modifier.weight(1f));PrimaryButton("Calcular mantenimiento",next)}}
-private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)){2->listOf("Comida","Cena");3->listOf("Desayuno","Comida","Cena");4->listOf("Desayuno","Comida","Merienda","Cena");5->listOf("Desayuno","Media mañana","Comida","Merienda","Cena");else->listOf("Desayuno","Media mañana","Comida","Merienda","Cena","Recena")}
+private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)){2->listOf("Comida","Cena");3->listOf("Desayuno","Comida","Cena");4->listOf("Desayuno","Almuerzo","Comida","Cena");5->listOf("Desayuno","Media mañana","Comida","Merienda","Cena");else->listOf("Desayuno","Media mañana","Comida","Merienda","Cena","Recena")}
 @Composable private fun MealCountQuestion(count:Int,setCount:(Int)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Paso 7 de 8","¿Cuántas comidas haces al día?");Text("TITÁN organizará tu plan alrededor de tu rutina habitual.",color=TitanTextSecondary);Spacer(Modifier.height(18.dp));(2..6).forEach{n->Card(onClick={setCount(n)},modifier=Modifier.fillMaxWidth().padding(vertical=5.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=if(count==n)TitanPrimary.copy(alpha=.13f) else TitanCard),border=if(count==n)androidx.compose.foundation.BorderStroke(1.dp,TitanPrimary) else null){Row(Modifier.fillMaxWidth().padding(18.dp),verticalAlignment=Alignment.CenterVertically){Text("$n comidas",Modifier.weight(1f),fontWeight=FontWeight.Bold);Text(if(count==n)"✓" else "○",color=if(count==n)TitanPrimary else TitanTextSecondary,fontSize=22.sp)}}};Spacer(Modifier.weight(1f));PrimaryButton("Continuar",next)}}
 @Composable private fun Maintenance(e:EnergyEstimate,next:()->Unit){var details by remember{mutableStateOf(false)};Column(Modifier.padding(horizontal=22.dp)){Header("Paso 8 de 8","Tu mantenimiento");Text("Según tus datos, tu gasto energético diario estimado es:",color=TitanTextSecondary);Spacer(Modifier.height(16.dp));Card(colors=CardDefaults.cardColors(containerColor=TitanCard),shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text(e.maintenance.toString()+" kcal",fontSize=38.sp,fontWeight=FontWeight.Bold);Text("VER CÓMO SE CALCULÓ "+if(details)"⌃" else "›",color=TitanPrimary,fontWeight=FontWeight.Bold,modifier=Modifier.clickable{details=!details}.padding(vertical=8.dp));AnimatedVisibility(details){Column{Text("GASTO BASAL  "+e.bmr+" kcal",color=TitanTextSecondary);Text("ACTIVIDAD BASE  "+e.baseWithActivity+" kcal",color=TitanTextSecondary);Text("TRABAJO  "+e.dailyActivityKcal+" kcal",color=TitanTextSecondary);Text("ENTRENAMIENTO  "+e.trainingKcal+" kcal",color=TitanTextSecondary)}}}};Spacer(Modifier.weight(1f));PrimaryButton("Elegir estrategia",next)}}
 @Composable private fun Strategies(m:Int,current:Strategy,set:(Strategy)->Unit,next:()->Unit){Column(Modifier.padding(24.dp)){Header("Configuración inicial","Elige tu estrategia");TitanEngine.plans(m).forEach{p->Card(onClick={set(p.strategy)},modifier=Modifier.fillMaxWidth().padding(vertical=6.dp),colors=CardDefaults.cardColors(containerColor=if(p.strategy==current)TitanCard else TitanSurface)){Column(Modifier.padding(18.dp)){Text(when(p.strategy){Strategy.LOW->"Bajo";Strategy.MODERATE->"Moderado";Strategy.RIGOROUS->"Riguroso"},fontWeight=FontWeight.Bold);Text(p.target.toString()+" kcal · margen hasta "+p.toleranceCeiling,color=TitanTextSecondary)}}};Spacer(Modifier.weight(1f));PrimaryButton("Entrar en TITÁN",next)}}
 @Composable private fun RowScope.MacroBar(label:String,value:Int,target:Int){val goal=if(target>0)(value.toFloat()/target).coerceIn(0f,1f) else 0f;val progress by animateFloatAsState(goal,tween(750),label="macro");Column(Modifier.weight(1f)){Text(label,style=MaterialTheme.typography.labelLarge);Text("$value / $target g",color=TitanTextSecondary,fontSize=12.sp);LinearProgressIndicator(progress={progress},modifier=Modifier.fillMaxWidth().height(5.dp),color=TitanSecondary,trackColor=TitanDivider)}}
 @Composable private fun CalorieRing(b:DailyBalance,plan:CaloriePlan){val goal=(b.consumed/plan.target.toFloat()).coerceIn(0f,1f);val progress by animateFloatAsState(goal,tween(900,easing=FastOutSlowInEasing),label="calorieRing");Box(Modifier.size(210.dp),contentAlignment=Alignment.Center){Canvas(Modifier.fillMaxSize()){val stroke=18.dp.toPx();drawArc(TitanDivider,-90f,360f,false,style=Stroke(stroke,cap=StrokeCap.Round));drawArc(TitanPrimary,-90f,360f*progress,false,style=Stroke(stroke,cap=StrokeCap.Round))};Column(horizontalAlignment=Alignment.CenterHorizontally){Text("Te quedan",color=TitanTextSecondary);Text(b.availableToTarget.toString(),fontSize=42.sp,fontWeight=FontWeight.Bold);Text("kcal",color=TitanTextSecondary)}}}
-@Composable private fun BottomNav(today:()->Unit,plan:()->Unit,progress:()->Unit,more:()->Unit){NavigationBar(containerColor=TitanSurface.copy(alpha=.97f),tonalElevation=10.dp){NavigationBarItem(true,today,{Text("●",color=TitanPrimary)},label={Text("HOY",fontWeight=FontWeight.Bold)},colors=NavigationBarItemDefaults.colors(indicatorColor=TitanPrimary.copy(alpha=.14f),selectedTextColor=TitanPrimary));NavigationBarItem(false,plan,{Text("◆")},label={Text("PLAN")});NavigationBarItem(false,progress,{Text("▲")},label={Text("PROGRESO")});NavigationBarItem(false,more,{Text("•••")},label={Text("MÁS")})}}
+@Composable private fun NavIcon(kind:Int,active:Boolean=false){
+ val color=if(active)TitanPrimary else TitanTextSecondary
+ Canvas(Modifier.size(27.dp)){
+  val s=size.minDimension;val sw=s*.10f
+  when(kind){
+   0->{ // casa
+    val p=Path().apply{moveTo(s*.12f,s*.47f);lineTo(s*.50f,s*.15f);lineTo(s*.88f,s*.47f);lineTo(s*.78f,s*.47f);lineTo(s*.78f,s*.86f);lineTo(s*.57f,s*.86f);lineTo(s*.57f,s*.61f);lineTo(s*.43f,s*.61f);lineTo(s*.43f,s*.86f);lineTo(s*.22f,s*.86f);lineTo(s*.22f,s*.47f);close()};drawPath(p,color)}
+   1->{ // cubiertos
+    drawLine(color,Offset(s*.30f,s*.18f),Offset(s*.30f,s*.86f),sw,StrokeCap.Round)
+    drawLine(color,Offset(s*.20f,s*.18f),Offset(s*.20f,s*.42f),sw*.65f,StrokeCap.Round)
+    drawLine(color,Offset(s*.40f,s*.18f),Offset(s*.40f,s*.42f),sw*.65f,StrokeCap.Round)
+    drawLine(color,Offset(s*.20f,s*.42f),Offset(s*.40f,s*.42f),sw*.65f,StrokeCap.Round)
+    drawLine(color,Offset(s*.70f,s*.18f),Offset(s*.70f,s*.86f),sw,StrokeCap.Round)
+    drawLine(color,Offset(s*.70f,s*.18f),Offset(s*.58f,s*.48f),sw,StrokeCap.Round)}
+   2->{ // registro
+    drawRoundRect(color=Color.Transparent,topLeft=Offset(s*.20f,s*.22f),size=androidx.compose.ui.geometry.Size(s*.60f,s*.66f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(s*.10f),style=Stroke(sw))
+    drawRoundRect(color=color,topLeft=Offset(s*.20f,s*.22f),size=androidx.compose.ui.geometry.Size(s*.60f,s*.66f),cornerRadius=androidx.compose.ui.geometry.CornerRadius(s*.10f),style=Stroke(sw))
+    drawLine(color,Offset(s*.50f,s*.39f),Offset(s*.50f,s*.70f),sw,StrokeCap.Round);drawLine(color,Offset(s*.35f,s*.55f),Offset(s*.65f,s*.55f),sw,StrokeCap.Round)
+    drawLine(color,Offset(s*.40f,s*.14f),Offset(s*.60f,s*.14f),sw,StrokeCap.Round)}
+   3->{ // barras de progreso
+    drawLine(color,Offset(s*.24f,s*.82f),Offset(s*.24f,s*.55f),sw*1.5f,StrokeCap.Round)
+    drawLine(color,Offset(s*.50f,s*.82f),Offset(s*.50f,s*.30f),sw*1.5f,StrokeCap.Round)
+    drawLine(color,Offset(s*.76f,s*.82f),Offset(s*.76f,s*.44f),sw*1.5f,StrokeCap.Round)}
+   else->{ // menu
+    listOf(.30f,.50f,.70f).forEach{y->drawLine(color,Offset(s*.18f,s*y),Offset(s*.82f,s*y),sw,StrokeCap.Round)}}
+  }
+ }
+}
+@Composable private fun BottomNav(today:()->Unit,meals:()->Unit,register:()->Unit,progress:()->Unit,more:()->Unit){
+ NavigationBar(containerColor=Color(0xFF071218).copy(alpha=.98f),tonalElevation=0.dp){
+  NavigationBarItem(true,today,{NavIcon(0,true)},label={Text("Hoy")},colors=NavigationBarItemDefaults.colors(indicatorColor=Color.Transparent,selectedIconColor=TitanPrimary,selectedTextColor=TitanPrimary))
+  NavigationBarItem(false,meals,{NavIcon(1)},label={Text("Comidas")},colors=NavigationBarItemDefaults.colors(indicatorColor=Color.Transparent))
+  NavigationBarItem(false,register,{NavIcon(2)},label={Text("Registro")},colors=NavigationBarItemDefaults.colors(indicatorColor=Color.Transparent))
+  NavigationBarItem(false,progress,{NavIcon(3)},label={Text("Progreso")},colors=NavigationBarItemDefaults.colors(indicatorColor=Color.Transparent))
+  NavigationBarItem(false,more,{NavIcon(4)},label={Text("Más")},colors=NavigationBarItemDefaults.colors(indicatorColor=Color.Transparent))
+ }
+}
 @Composable private fun Today(plan:CaloriePlan,b:DailyBalance,macros:MacroBalance,meals:List<MealSlot>,add:()->Unit,skip:(String)->Unit,close:()->Unit,week:()->Unit,quick:()->Unit,social:()->Unit){
  val cal=java.util.Calendar.getInstance()
  val currentDow=cal.get(java.util.Calendar.DAY_OF_WEEK)
@@ -131,7 +167,7 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
  val days=(0..6).map{i->
   (cal.clone() as java.util.Calendar).apply{add(java.util.Calendar.DAY_OF_MONTH,mondayOffset+i)}
  }
- Scaffold(containerColor=Color.Transparent,bottomBar={BottomNav({},add,week,{})}){pad->
+ Scaffold(containerColor=Color.Transparent,bottomBar={BottomNav({},add,quick,week,{})}){pad->
   Column(Modifier.padding(pad).padding(horizontal=20.dp).verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally){
    Spacer(Modifier.height(52.dp))
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){
@@ -166,7 +202,15 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
     meals.take(4).forEachIndexed{i,m->
      Surface(shape=RoundedCornerShape(14.dp),color=TitanCard.copy(alpha=.92f),modifier=Modifier.weight(1f).clickable{add()}){
       Column(Modifier.padding(vertical=11.dp,horizontal=4.dp),horizontalAlignment=Alignment.CenterHorizontally){
-       Text(when(i){0->"☀";1->"♨";2->"●";else->"☾"},fontSize=20.sp,color=TitanText)
+       Canvas(Modifier.size(24.dp)){
+        val s=size.minDimension;val col=TitanText
+        when(i){
+         0->{drawCircle(col,s*.22f,Offset(s*.5f,s*.5f));for(a in 0 until 8){val ang=Math.toRadians((a*45).toDouble());val x1=(s*.5f+Math.cos(ang).toFloat()*s*.32f);val y1=(s*.5f+Math.sin(ang).toFloat()*s*.32f);val x2=(s*.5f+Math.cos(ang).toFloat()*s*.45f);val y2=(s*.5f+Math.sin(ang).toFloat()*s*.45f);drawLine(col,Offset(x1,y1),Offset(x2,y2),s*.06f,StrokeCap.Round)}}
+         1->{drawLine(col,Offset(s*.32f,s*.18f),Offset(s*.32f,s*.84f),s*.09f,StrokeCap.Round);drawLine(col,Offset(s*.20f,s*.18f),Offset(s*.20f,s*.42f),s*.05f);drawLine(col,Offset(s*.44f,s*.18f),Offset(s*.44f,s*.42f),s*.05f);drawLine(col,Offset(s*.20f,s*.42f),Offset(s*.44f,s*.42f),s*.05f);drawLine(col,Offset(s*.72f,s*.18f),Offset(s*.72f,s*.84f),s*.09f,StrokeCap.Round)}
+         2->{drawCircle(col,s*.28f,Offset(s*.5f,s*.56f));drawCircle(TitanCard,s*.22f,Offset(s*.43f,s*.49f));drawCircle(col,s*.14f,Offset(s*.67f,s*.60f))}
+         else->{drawCircle(col,s*.38f,Offset(s*.5f,s*.5f));drawCircle(TitanCard,s*.38f,Offset(s*.66f,s*.37f))}
+        }
+       }
        Spacer(Modifier.height(4.dp))
        Text(m.name,fontSize=10.sp,fontWeight=FontWeight.Bold,maxLines=1)
        Text(when(m.status){MealStatus.PENDING->"Pendiente";MealStatus.CONFIRMED->"Confirmada";MealStatus.SKIPPED->"Omitida"},fontSize=9.sp,color=when(m.status){MealStatus.CONFIRMED->TitanSuccess;MealStatus.SKIPPED->TitanWarning;else->TitanTextSecondary})
