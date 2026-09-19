@@ -123,8 +123,12 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
 @Composable private fun CalorieRing(b:DailyBalance,plan:CaloriePlan){val goal=(b.consumed/plan.target.toFloat()).coerceIn(0f,1f);val progress by animateFloatAsState(goal,tween(900,easing=FastOutSlowInEasing),label="calorieRing");Box(Modifier.size(210.dp),contentAlignment=Alignment.Center){Canvas(Modifier.fillMaxSize()){val stroke=18.dp.toPx();drawArc(TitanDivider,-90f,360f,false,style=Stroke(stroke,cap=StrokeCap.Round));drawArc(TitanPrimary,-90f,360f*progress,false,style=Stroke(stroke,cap=StrokeCap.Round))};Column(horizontalAlignment=Alignment.CenterHorizontally){Text("Te quedan",color=TitanTextSecondary);Text(b.availableToTarget.toString(),fontSize=42.sp,fontWeight=FontWeight.Bold);Text("kcal",color=TitanTextSecondary)}}}
 @Composable private fun BottomNav(today:()->Unit,plan:()->Unit,progress:()->Unit,more:()->Unit){NavigationBar(containerColor=TitanSurface.copy(alpha=.97f),tonalElevation=10.dp){NavigationBarItem(true,today,{Text("●",color=TitanPrimary)},label={Text("HOY",fontWeight=FontWeight.Bold)},colors=NavigationBarItemDefaults.colors(indicatorColor=TitanPrimary.copy(alpha=.14f),selectedTextColor=TitanPrimary));NavigationBarItem(false,plan,{Text("◆")},label={Text("PLAN")});NavigationBarItem(false,progress,{Text("▲")},label={Text("PROGRESO")});NavigationBarItem(false,more,{Text("•••")},label={Text("MÁS")})}}
 @Composable private fun Today(plan:CaloriePlan,b:DailyBalance,macros:MacroBalance,meals:List<MealSlot>,add:()->Unit,skip:(String)->Unit,close:()->Unit,week:()->Unit,quick:()->Unit,social:()->Unit){
- val today=java.time.LocalDate.now()
- val days=(0..6).map{today.with(java.time.DayOfWeek.MONDAY).plusDays(it.toLong())}
+ val cal=java.util.Calendar.getInstance()
+ val currentDow=cal.get(java.util.Calendar.DAY_OF_WEEK)
+ val mondayOffset=if(currentDow==java.util.Calendar.SUNDAY)-6 else java.util.Calendar.MONDAY-currentDow
+ val days=(0..6).map{i->
+  (cal.clone() as java.util.Calendar).apply{add(java.util.Calendar.DAY_OF_MONTH,mondayOffset+i)}
+ }
  Scaffold(containerColor=Color.Transparent,bottomBar={BottomNav({},add,week,{})}){pad->
   Column(Modifier.padding(pad).padding(horizontal=20.dp),horizontalAlignment=Alignment.CenterHorizontally){
    Spacer(Modifier.height(52.dp))
@@ -135,12 +139,12 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
    }
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.Top){
     days.forEach{d->
-     val active=d==today
+     val active=d.get(java.util.Calendar.YEAR)==cal.get(java.util.Calendar.YEAR) && d.get(java.util.Calendar.DAY_OF_YEAR)==cal.get(java.util.Calendar.DAY_OF_YEAR)
      Column(horizontalAlignment=Alignment.CenterHorizontally,modifier=Modifier.width(42.dp)){
       Surface(shape=RoundedCornerShape(50),color=if(active)TitanPrimary else Color.Transparent,border=androidx.compose.foundation.BorderStroke(1.dp,if(active)TitanPrimary else TitanDivider),modifier=Modifier.size(40.dp)){
-       Box(contentAlignment=Alignment.Center){Text(when(d.dayOfWeek){java.time.DayOfWeek.MONDAY->"L";java.time.DayOfWeek.TUESDAY->"M";java.time.DayOfWeek.WEDNESDAY->"X";java.time.DayOfWeek.THURSDAY->"J";java.time.DayOfWeek.FRIDAY->"V";java.time.DayOfWeek.SATURDAY->"S";java.time.DayOfWeek.SUNDAY->"D"},color=if(active)TitanBackground else TitanText,fontWeight=FontWeight.Bold)}
+       Box(contentAlignment=Alignment.Center){Text(when(d.get(java.util.Calendar.DAY_OF_WEEK)){java.util.Calendar.MONDAY->"L";java.util.Calendar.TUESDAY->"M";java.util.Calendar.WEDNESDAY->"X";java.util.Calendar.THURSDAY->"J";java.util.Calendar.FRIDAY->"V";java.util.Calendar.SATURDAY->"S";else->"D"},color=if(active)TitanBackground else TitanText,fontWeight=FontWeight.Bold)}
       }
-      Spacer(Modifier.height(4.dp));Text(d.dayOfMonth.toString(),fontSize=11.sp,color=if(active)TitanPrimary else TitanTextSecondary)
+      Spacer(Modifier.height(4.dp));Text(d.get(java.util.Calendar.DAY_OF_MONTH).toString(),fontSize=11.sp,color=if(active)TitanPrimary else TitanTextSecondary)
      }
     }
    }
