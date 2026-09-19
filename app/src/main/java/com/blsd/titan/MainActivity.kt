@@ -59,7 +59,7 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,WORK,WORK_DETAIL,TRAINING,MA
  Surface(Modifier.fillMaxSize(),color=TitanBackground){
   Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TitanBackground,Color(0xFF0C1821),TitanBackground)))){
   AnimatedContent(targetState=screen,transitionSpec={fadeIn(tween(260))+slideInHorizontally(tween(260)){it/10} togetherWith fadeOut(tween(180))},label="screen"){shownScreen->
-  Box(Modifier.fillMaxSize()){TitanAtmosphere();
+  Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)){TitanAtmosphere();
   when(shownScreen){
    Screen.WELCOME->Welcome{screen=if(saved!=null)Screen.TODAY else Screen.OBJECTIVE}
    Screen.OBJECTIVE->Objective{screen=Screen.PROFILE}
