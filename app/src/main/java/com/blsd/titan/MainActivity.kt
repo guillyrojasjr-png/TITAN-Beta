@@ -82,11 +82,11 @@ private enum class Screen{WELCOME,OBJECTIVE,PROFILE,PROFESSION,WORK,WORK_DETAIL,
     store.save(profile,estimate!!.maintenance,strategy,mealCount)
     val names=mealNamesForCount(mealCount);meals=TitanEngine.distribute(currentPlan().target,names);store.saveDay(meals,currentPlan());screen=Screen.TODAY}
    Screen.TODAY->{val p=currentPlan();Today(p,TitanEngine.balance(p,meals.sumOf{it.consumedKcal}),MealEngine.macroBalance(MealEngine.macroTarget(weight.toDoubleOrNull()?:70.0,p.target),meals),meals,{screen=Screen.MEALS},{id->val updated=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,p)},{screen=Screen.DAY_CLOSE},{screen=Screen.WEEK},{screen=Screen.ADD},{screen=Screen.SOCIAL})}
-   Screen.MEALS->MealList(meals,{m->selectedMealId=m.id;proposedDish=if(m.status==MealStatus.CONFIRMED) MealEngine.alternatives(m.plannedKcal).minByOrNull{ kotlin.math.abs(it.kcal-m.consumedKcal) } ?: MealEngine.propose(m.plannedKcal) else MealEngine.propose(m.plannedKcal);screen=Screen.DISH},{id->val updated=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan())},{screen=Screen.TODAY})
-   Screen.DISH->DishProposal(proposedDish!!,{screen=Screen.ALTERNATIVES},{index->selectedIngredient=index;screen=Screen.INGREDIENT},{
+   Screen.MEALS->MealList(meals,{m->selectedMealId=m.id;proposedDish=if(m.status==MealStatus.CONFIRMED) MealEngine.alternativesForMeal(m.name,m.plannedKcal).minByOrNull{ kotlin.math.abs(it.kcal-m.consumedKcal) } ?: MealEngine.proposeForMeal(m.name,m.plannedKcal) else MealEngine.proposeForMeal(m.name,m.plannedKcal);screen=Screen.DISH},{id->val updated=meals.map{if(it.id==id)it.copy(status=MealStatus.SKIPPED)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan())},{screen=Screen.TODAY})
+   Screen.DISH->DishProposal(meals.first{it.id==selectedMealId}.name,proposedDish!!,{screen=Screen.ALTERNATIVES},{index->selectedIngredient=index;screen=Screen.INGREDIENT},{
     val id=selectedMealId;val d=proposedDish!!;val updated=meals.map{if(it.id==id)it.copy(name=d.name,consumedKcal=d.kcal,status=MealStatus.CONFIRMED,proteinG=d.proteinG,carbsG=d.carbsG,fatG=d.fatG)else it}.let(TitanEngine::redistribute);meals=updated;store.saveDay(updated,currentPlan());screen=Screen.MEALS
    },{screen=Screen.MEALS})
-   Screen.ALTERNATIVES->Alternatives(meals.first{it.id==selectedMealId}.plannedKcal,proposedDish!!,{d->proposedDish=d;screen=Screen.DISH},{screen=Screen.DISH})
+   Screen.ALTERNATIVES->Alternatives(meals.first{it.id==selectedMealId}.name,meals.first{it.id==selectedMealId}.plannedKcal,proposedDish!!,{d->proposedDish=d;screen=Screen.DISH},{screen=Screen.DISH})
    Screen.INGREDIENT->IngredientEditor(proposedDish!!,selectedIngredient,{g->proposedDish=MealEngine.resizeIngredient(proposedDish!!,selectedIngredient,g)},{replacement->proposedDish=MealEngine.replaceIngredient(proposedDish!!,selectedIngredient,replacement);screen=Screen.DISH},{screen=Screen.DISH})
    Screen.DAY_CLOSE->DayClose(TitanEngine.closeDay(currentPlan(),meals),store.remainingDaysInWeek()){store.saveDay(meals,currentPlan(),closed=true);screen=Screen.WEEK}
    Screen.WEEK->WeekHistory(store.weekHistory(),{screen=Screen.WEEK_REVIEW},{screen=Screen.BODY}){screen=Screen.TODAY}
@@ -222,21 +222,46 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
  }
 }
 @Composable private fun MealList(meals:List<MealSlot>,open:(MealSlot)->Unit,skip:(String)->Unit,back:()->Unit){Column(Modifier.padding(horizontal=22.dp)){Header("PLAN DE HOY","Mis comidas");Text("TU DÍA, ORGANIZADO SIN CONVERTIRLO EN UNA CÁRCEL.",color=TitanTextSecondary,fontSize=12.sp,letterSpacing=.6.sp);Spacer(Modifier.height(12.dp));meals.forEachIndexed{i,m->Card(onClick={if(m.status!=MealStatus.SKIPPED)open(m)},colors=CardDefaults.cardColors(containerColor=TitanCard.copy(alpha=.9f)),shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth().padding(vertical=6.dp)){Row(Modifier.padding(15.dp),verticalAlignment=Alignment.CenterVertically){FoodVisual(Modifier.size(64.dp));Spacer(Modifier.width(14.dp));Column(Modifier.weight(1f)){Text(m.name.uppercase(),fontWeight=FontWeight.ExtraBold);Text(m.plannedKcal.toString()+" KCAL OBJETIVO",color=TitanTextSecondary,fontSize=11.sp);Spacer(Modifier.height(5.dp));Text(when(m.status){MealStatus.PENDING->"PENDIENTE";MealStatus.CONFIRMED->"✓ CONFIRMADA · "+m.consumedKcal+" KCAL";MealStatus.SKIPPED->"OMITIDA"},color=when(m.status){MealStatus.CONFIRMED->TitanSuccess;MealStatus.SKIPPED->TitanWarning;else->TitanPrimary},fontSize=11.sp,fontWeight=FontWeight.Bold)};if(m.status==MealStatus.PENDING)TextButton({skip(m.id)}){Text("OMITIR",fontSize=10.sp)}}}};Spacer(Modifier.weight(1f));TextButton(back,Modifier.fillMaxWidth()){Text("VOLVER A HOY")}}}
-@Composable private fun DishProposal(d:Dish,change:()->Unit,ingredient:(Int)->Unit,confirm:()->Unit,back:()->Unit){Column(Modifier.padding(horizontal=22.dp)){Header("PLATO PROPUESTO",d.name);Card(colors=CardDefaults.cardColors(containerColor=TitanCard.copy(alpha=.92f)),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(20.dp)){FoodVisual(Modifier.fillMaxWidth().height(170.dp));Spacer(Modifier.height(16.dp));Text(d.kcal.toString()+" kcal",fontSize=30.sp,fontWeight=FontWeight.Bold);Text("Proteínas "+d.proteinG+" g · Carbohidratos "+d.carbsG+" g · Grasas "+d.fatG+" g",color=TitanTextSecondary);Spacer(Modifier.height(14.dp));d.ingredients.forEachIndexed{i,x->Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(x.name,fontWeight=FontWeight.SemiBold);Text(x.grams.toString()+" g · "+x.kcal+" kcal",color=TitanTextSecondary)};TextButton({ingredient(i)}){Text("CAMBIAR")}}}};Spacer(Modifier.height(18.dp));PrimaryButton("CONFIRMAR PLATO",confirm);OutlinedButton(change,Modifier.fillMaxWidth().padding(top=10.dp)){Text("CAMBIAR PLATO")};TextButton(back,Modifier.fillMaxWidth()){Text("Atrás")}}}}
-@Composable private fun Alternatives(target:Int,current:Dish,choose:(Dish)->Unit,back:()->Unit){
- Column(Modifier.padding(horizontal=22.dp)){
-  Header("CAMBIAR PLATO","4 alternativas compatibles")
-  MealEngine.alternatives(target,exclude=setOf(current.id)).forEach{d->
-   Card(onClick={choose(d)},colors=CardDefaults.cardColors(containerColor=TitanCard.copy(alpha=.92f)),modifier=Modifier.fillMaxWidth().padding(vertical=5.dp)){
-    Column(Modifier.padding(16.dp)){
-     Text(d.name,fontWeight=FontWeight.Bold)
-     Text(d.kcal.toString()+" kcal · P "+d.proteinG+" · C "+d.carbsG+" · G "+d.fatG,color=TitanTextSecondary)
+@Composable private fun DishProposal(mealName:String,d:Dish,change:()->Unit,ingredient:(Int)->Unit,confirm:()->Unit,back:()->Unit){
+ Column(Modifier.fillMaxSize().padding(horizontal=22.dp).verticalScroll(rememberScrollState())){
+  Spacer(Modifier.height(62.dp))
+  Row(verticalAlignment=Alignment.CenterVertically){Text("‹",fontSize=44.sp,modifier=Modifier.clickable{back()});Spacer(Modifier.width(12.dp));Text(mealName,fontSize=32.sp,fontWeight=FontWeight.ExtraBold)}
+  Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Surface(shape=RoundedCornerShape(18.dp),color=TitanCard){Text("Propuesta de TITÁN",Modifier.padding(horizontal=22.dp,vertical=10.dp),fontWeight=FontWeight.Bold)}}
+  Spacer(Modifier.height(16.dp))
+  FoodVisual(Modifier.fillMaxWidth().height(285.dp))
+  Spacer(Modifier.height(18.dp))
+  Text(d.name,fontSize=27.sp,fontWeight=FontWeight.ExtraBold)
+  Spacer(Modifier.height(20.dp))
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){
+   Metric(d.kcal.toString(),"kcal");Metric(d.proteinG.toString()+" g","Proteína");Metric(d.carbsG.toString()+" g","H. Carbono");Metric(d.fatG.toString()+" g","Grasa")
+  }
+  Spacer(Modifier.height(24.dp));PrimaryButton("CONFIRMAR PLATO",confirm)
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){
+   TextButton(change){Text("Cambiar plato",color=TitanPrimary,fontWeight=FontWeight.Bold)}
+   TextButton({if(d.ingredients.isNotEmpty())ingredient(0)}){Text("Ver más",color=TitanPrimary,fontWeight=FontWeight.Bold)}
+  }
+  Spacer(Modifier.height(22.dp))
+ }
+}
+@Composable private fun Metric(value:String,label:String){Column(horizontalAlignment=Alignment.CenterHorizontally){Text(value,fontSize=21.sp,fontWeight=FontWeight.ExtraBold);Text(label,fontSize=11.sp,color=TitanTextSecondary)}}
+
+@Composable private fun Alternatives(mealName:String,target:Int,current:Dish,choose:(Dish)->Unit,back:()->Unit){
+ Column(Modifier.fillMaxSize().padding(horizontal=22.dp).verticalScroll(rememberScrollState())){
+  Spacer(Modifier.height(62.dp))
+  Row(verticalAlignment=Alignment.Top){Text("‹",fontSize=44.sp,modifier=Modifier.clickable{back()});Spacer(Modifier.width(12.dp));Column{Text("Alternativas",fontSize=30.sp,fontWeight=FontWeight.ExtraBold);Text("compatibles",fontSize=30.sp,fontWeight=FontWeight.ExtraBold)}}
+  Text("Misma intención. Diferentes opciones.",color=TitanTextSecondary,fontSize=16.sp)
+  Spacer(Modifier.height(18.dp))
+  MealEngine.alternativesForMeal(mealName,target,exclude=setOf(current.id)).forEach{d->
+   Card(onClick={choose(d)},colors=CardDefaults.cardColors(containerColor=TitanCard.copy(alpha=.94f)),shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().padding(vertical=6.dp)){
+    Row(Modifier.padding(10.dp),verticalAlignment=Alignment.CenterVertically){
+     FoodVisual(Modifier.size(92.dp));Spacer(Modifier.width(14.dp))
+     Column(Modifier.weight(1f)){Text(d.name,fontSize=17.sp,fontWeight=FontWeight.Bold);Spacer(Modifier.height(5.dp));Text(d.kcal.toString()+" kcal",color=TitanTextSecondary)}
+     Text("›",fontSize=34.sp,color=TitanTextSecondary)
     }
    }
   }
-  Text("VER MÁS",color=TitanPrimary,modifier=Modifier.padding(16.dp))
-  Spacer(Modifier.weight(1f))
-  TextButton(back,Modifier.fillMaxWidth()){Text("VOLVER")}
+  Spacer(Modifier.height(24.dp));OutlinedButton(back,Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(18.dp)){Text("Volver")}
+  Spacer(Modifier.height(24.dp))
  }
 }
 
