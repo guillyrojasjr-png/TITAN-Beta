@@ -199,7 +199,7 @@ private fun mealNamesForCount(count:Int):List<String> = when(count.coerceIn(2,6)
    }
    Spacer(Modifier.height(14.dp))
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-    meals.take(4).forEachIndexed{i,m->
+    meals.forEachIndexed{i,m->
      Surface(shape=RoundedCornerShape(14.dp),color=TitanCard.copy(alpha=.92f),modifier=Modifier.weight(1f).clickable{add()}){
       Column(Modifier.padding(vertical=11.dp,horizontal=4.dp),horizontalAlignment=Alignment.CenterHorizontally){
        Canvas(Modifier.size(24.dp)){
